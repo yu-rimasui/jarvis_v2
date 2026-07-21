@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Loop"
+  short_description: "Route resilient work across expert agents"
+  default_prompt: "Use $codex-loop to route these tasks across the expert agent pack with checkpoints, one retry per failed stage, and a final review report."

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "name": "example-sequential-run",
+  "policy": {
+    "max_attempts_per_stage": 2,
+    "commit_mode": "never",
+    "push": "never",
+    "worktrees": "forbid",
+    "continue_independent_after_failure": true
+  },
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Implement the primary change",
+      "agent": "forge",
+      "depends_on": [],
+      "stages": [
+        {
+          "id": "inspect",
+          "title": "Inspect requirements and current behavior",
+          "agent": "curio",
+          "prompt": "Read the authoritative inputs and repository guidance. Identify conflicts, constraints, affected files, and verification commands.",
+          "verification": [
+            "Relevant files and constraints are recorded",
+            "Material conflicts are resolved or blocked"
+          ]
+        },
+        {
+          "id": "implement",
+          "title": "Implement the scoped change",
+          "prompt": "Implement only the agreed scope while preserving unrelated work and existing contracts.",
+          "verification": [
+            "Changed code matches the scoped outcome",
+            "No unrelated files are included"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verify the primary change",
+          "prompt": "Run targeted and repository-level checks required by the task. Diagnose failures and distinguish new failures from evidenced pre-existing failures.",
+          "verification": [
+            "Targeted checks pass",
+            "Required broader checks pass or are documented"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "task-2",
+      "title": "Audit the completed change",
+      "agent": "relay",
+      "depends_on": [
+        "task-1"
+      ],
+      "stages": [
+        {
+          "id": "audit",
+          "title": "Audit and fix mechanical findings",
+          "prompt": "Audit the completed change. Fix only cheap mechanical findings and record substantive findings for review.",
+          "verification": [
+            "Audit findings are classified",
+            "Mechanical fixes are verified"
+          ]
+        }
+      ]
+    }
+  ]
+}

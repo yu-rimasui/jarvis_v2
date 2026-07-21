@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs and local data
+*.log
+data/
+memory/
+private/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Codex Loop runtime artifacts
+.codex/loop/

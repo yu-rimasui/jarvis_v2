@@ -1,0 +1,5 @@
+# Use the repository-local skill for automatic continuations. The global
+# codex-loop runtime still owns hooks and session-level continuation state.
+optional_skill_name = "codex-loop"
+optional_skill_path = ".agents/skills/codex-loop"
+extra_continuation_guidance = "Resume the matching .codex/loop/<name>/state.json, execute exactly one actionable stage, checkpoint it, and stop. Follow CODEX.md for Git and external-action boundaries."
