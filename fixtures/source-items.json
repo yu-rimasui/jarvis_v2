@@ -1,0 +1,44 @@
+[
+  {
+    "sourceType": "x",
+    "sourceExternalId": "fixture-x-001",
+    "title": "MCP SDKを使った最小実験メモ（fixture）",
+    "author": "Example AI Engineer",
+    "content": "検証用の合成投稿です。MCPのTypeScript SDK https://github.com/modelcontextprotocol/typescript-sdk を小さなローカル実験で確認します。",
+    "canonicalUrl": "https://example.test/x/fixture-x-001?utm_source=demo",
+    "publishedAt": "2026-07-27T23:00:00+09:00",
+    "sourceMetadata": {
+      "synthetic": true,
+      "list": "local-demo"
+    },
+    "topicUrl": "https://github.com/modelcontextprotocol/typescript-sdk"
+  },
+  {
+    "sourceType": "zenn",
+    "sourceExternalId": "fixture-zenn-001",
+    "title": "MCPツールをテストする手順（fixture）",
+    "author": "Example Technical Writer",
+    "content": "検証用の合成記事です。https://github.com/modelcontextprotocol/typescript-sdk を参照し、MCPツールの入出力をfixtureでテストする案を扱います。",
+    "canonicalUrl": "https://example.test/zenn/fixture-zenn-001",
+    "publishedAt": "2026-07-28T00:30:00+09:00",
+    "sourceMetadata": {
+      "synthetic": true,
+      "feed": "local-demo"
+    },
+    "topicUrl": "https://github.com/modelcontextprotocol/typescript-sdk"
+  },
+  {
+    "sourceType": "qiita",
+    "sourceExternalId": "fixture-qiita-001",
+    "title": "Codexで回帰テスト候補を整理する（fixture）",
+    "author": "Example QA Engineer",
+    "content": "検証用の合成記事です。CodexとTest Automationを使い、変更前後の差分から最小の回帰テスト候補を作る仮説を扱います。",
+    "canonicalUrl": "https://example.test/qiita/fixture-qiita-001#demo",
+    "publishedAt": "2026-07-28T01:00:00+09:00",
+    "sourceMetadata": {
+      "synthetic": true,
+      "feed": "local-demo"
+    },
+    "topicUrl": "https://example.test/topics/codex-test-automation"
+  }
+]

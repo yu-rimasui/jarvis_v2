@@ -1,0 +1,26 @@
+{
+  "name": "jarvis-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first Jarvis personal AI and R&D intelligence MVP",
+  "type": "module",
+  "engines": {
+    "node": ">=22.14 <23"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:init": "npm run build --silent && node dist/src/cli/init-db.js",
+    "pipeline:fixture": "npm run build --silent && node dist/src/cli/run-fixture.js",
+    "api:local": "npm run build --silent && node dist/src/cli/run-local-api.js",
+    "test": "npm run build --silent && node --test dist/tests/*.test.js",
+    "test:unit": "npm run build --silent && node --test dist/tests/foundation.test.js dist/tests/analysis-ranking.test.js",
+    "test:integration": "npm run build --silent && node --test dist/tests/pipeline.test.js dist/tests/experiment.test.js dist/tests/content-draft.test.js dist/tests/daily-digest.test.js dist/tests/local-api.test.js dist/tests/closed-loop.test.js",
+    "test:local-api": "npm run build --silent && node --test dist/tests/local-api.test.js",
+    "test:foundation": "npm run build --silent && node --test dist/tests/foundation.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,149 +1,122 @@
-# Jarvis v2
+# Jarvis R&D Intelligence MVP
 
-Jarvis v2は、ゆーり自身の記憶・能力・判断傾向・人格を少しずつ学び、将来的に「自分のデジタルツイン」へ育てるための、ローカルファーストなパーソナルAIプロジェクトです。
-
-既存のOpenJarvisをそのまま縮小するのではなく、必要な機能だけを、理解できる大きさで一つずつ実装します。
-
-## 現在の状態
-
-このリポジトリは設計開始時点のドキュメントのみです。アプリケーションコード、依存パッケージ、GitHub Actions、定期実行はまだ導入していません。
-
-前身プロジェクトの調査結果は[`docs/JARVIS_V1_HANDOFF.md`](docs/JARVIS_V1_HANDOFF.md)を参照してください。Codexを使った開発ルールは[`CODEX.md`](CODEX.md)に定義しています。
-
-## MVPの目的
-
-最初のMVPでは、次の一連の体験を成立させます。
-
-1. ユーザーがJarvisとチャットできる。
-2. ユーザーが明示的に許可した情報だけを記憶として保存できる。
-3. 保存した記憶を検索し、根拠を示して回答に利用できる。
-4. 「自分らしい／違う」というフィードバックを記録できる。
-5. ローカルLLMを優先し、必要な場合だけクラウドAPIへ切り替えられる。
-
-### MVPに含める候補
-
-- シンプルなチャットUI
-- 最小限のバックエンドAPI
-- ローカルLLM接続（例：Ollama）
-- 任意のクラウドLLM接続
-- SQLiteまたはMarkdownによるローカル記憶
-- 記憶の検索、出典表示、編集、削除
-- 明示的な記憶保存とフィードバック
-- 最低限のユニットテスト
-
-### MVPに含めないもの
-
-- 無制限に自律実行するエージェント
-- OSレベルの常駐処理や勝手な定期実行
-- IoT機器の操作
-- 多数の外部サービス連携
-- 音声クローンや意識の再現
-- 複雑なMulti-Agentフレームワーク
-- リリース自動化やパッケージ配布
-
-## 設計原則
-
-- **Local first:** 個人情報と記憶は原則ローカルに保存する。
-- **Explicit consent:** 保存、外部送信、実行はユーザーの明示的な許可を境界にする。
-- **Understandable:** ゆーりが説明できない仕組みを安易に追加しない。
-- **Small vertical slices:** UIだけ、基盤だけではなく、小さくても一連の価値が動く単位で作る。
-- **Replaceable providers:** LLMや保存先を交換可能にし、特定サービスへ密結合しない。
-- **Evidence before autonomy:** 自律化はログ、評価、失敗時の停止方法が揃ってから行う。
-
-## Roadmap
-
-### Phase 0: Foundation
-
-- 要件とMVP境界の確定
-- 技術スタックの選定
-- ローカル起動手順と最小テストの整備
-- 秘密情報と個人データの管理方針の確定
-
-### Phase 1: Digital Twin — `feat/digital-twin`
-
-- 会話履歴と明示的な長期記憶
-- プロフィール、価値観、好み、判断傾向の管理
-- 記憶を参照した回答と根拠表示
-- フィードバックによる振る舞いの改善
-- 記憶の閲覧、訂正、削除、エクスポート
-
-### Phase 2: Dashboard Design — `design/dashboard`
-
-- Jarvisの状態、記憶、権限、実行履歴の可視化
-- Control Center UIの再設計
-- コスト、ローカル／クラウド利用状況、エラーの確認
-
-### Phase 3: IoT — `feat/iot`
-
-- 明示的に許可した機器との接続
-- 操作前確認、監査ログ、緊急停止
-- 読み取り専用から段階的に操作権限を拡張
-
-## Codexを使った開発
-
-このプロジェクトではCodexを共同開発者として利用します。ただし、Git履歴と公開操作の最終責任はゆーりが持ちます。
-
-- Codexは調査、提案、実装、ローカル検証を担当できます。
-- ブランチ作成・切り替え、stage、commit、push、PR作成は、ゆーりの明示的な依頼がない限り行いません。
-- 通常運用では、commitとpushはゆーりが実行します。
-- Codexは作業後に変更ファイル、検証結果、推奨コミットメッセージを提示します。
-- 詳細は[`CODEX.md`](CODEX.md)に従います。
-
-### Codex Loop
-
-複数日にまたがる実装、調査、QAなど、再開可能な進捗管理が必要な作業に限って`codex-loop` Skillを使用します。一回で終わる小さな修正には使用しません。
-
-実行時は、有限のroundsまたは明確なgoalを指定します。無制限ループは使用しません。
+Jarvis v2 に、技術情報を「読むだけ」で終わらせず、次の判断・実験・学習・発信へ変換するローカルファーストのR&D機能を追加しています。
 
 ```text
-[[CODEX_LOOP name="digital-twin-mvp" rounds="3"]]
-Use the codex-loop skill. Track the work under .codex/loop/digital-twin-mvp/.
+Collect → Evaluate → Experiment → Learn → Draft → Human Review
 ```
 
-### R&D Brain
+現在のMVPは、外部資格情報なしで `fixture` または手動JSONを取り込み、SQLiteへ保存し、重複排除・構造化分析・説明可能なランキング・実験記録・X下書きレビューまでをローカルで実行できます。
 
-機能を先に作るのではなく、EvidenceからPain、Opportunity、Idea、Critiqueへ変換する調査に`rd-brain` Skillを利用します。
+## 現在の境界
 
-```text
-$rd-brain research 個人AIが長期記憶を安全に更新するために、既存製品では未解決のPainは何か？
+実装済み:
+
+- fixture / manual import
+- SQLiteのmigration、重複排除、topic cluster
+- deterministic fake LLMによる型付き分析
+- relevance / novelty / actionability / author credibility の0〜5評価と0〜100ランキング
+- experimentの提案、承認、開始、結果・学習の記録
+- evidence scopeを持つX下書き、編集、コピー、人間レビュー、承認
+- processing historyと手動Daily Digest API
+- `127.0.0.1` 専用APIと既存Jarvisダッシュボード内のR&D画面
+
+明示的に未実装:
+
+- X API、Zenn RSS、Qiita RSSへの実接続（Collectorの境界とfixture/manual検証のみ）
+- 外部LLM、有料API、クラウド送信
+- Xへの自動投稿、Instagram API、自動スケジュール、任意コード実行
+- チャット、長期記憶、Digital Twin機能
+
+実装範囲の詳細とAPI契約は[`docs/RD_INTELLIGENCE.md`](docs/RD_INTELLIGENCE.md)を参照してください。
+
+## ローカルセットアップ
+
+必要環境:
+
+- Node.js `>=22.14 <23`
+- npm
+- 外部アカウント、APIキー、環境変数は不要
+
+リポジトリ直下で実行します。
+
+```bash
+npm ci
+npm run db:init
+npm run pipeline:fixture
+npm run api:local
 ```
 
-R&D BrainのKnowledge Baseは既定では`~/.codex/rd-brain`にあり、このリポジトリには自動的に含まれません。個人情報を含む成果物は、明示的な確認なしにコピー、commit、公開しません。
+その後、ブラウザで <http://127.0.0.1:4317/> を開きます。`api:local` は同じプロセスからUIとAPIを配信します。別のターミナルで停止する場合は `Ctrl-C` を使ってください。
+
+既定値は次のとおりです。
+
+- SQLite: `data/rd-intelligence.sqlite`
+- migration: `migrations/`
+- fixture: `fixtures/source-items.json`
+- API host / port: `127.0.0.1:4317`
+
+個別のパスを使う場合は、CLIへオプションを渡せます。
+
+```bash
+npm run db:init -- --database data/demo.sqlite
+npm run pipeline:fixture -- --database data/demo.sqlite --fixture fixtures/source-items.json
+npm run api:local -- --database data/demo.sqlite --port 4317
+```
+
+`api:local` 起動時にもmigrationは冪等に確認されます。fixtureは合成データであり、同じfixtureを再実行してもsource ID、canonical URL、content hashの重複は保存されません。
+
+## 画面での基本操作
+
+1. 既存ダッシュボードの `R&D INTELLIGENCE` を開く。
+2. `ローカルデータを更新` は保存済みデータの読み取りだけを行う。
+3. `INBOX` で合成サンプルを入力するか、手動JSONを貼り付け、`JSONを取り込む` を明示的に押す。
+4. `RANKED INSIGHTS` で根拠、スコア内訳、最初の実験を確認する。
+5. Insightから実験を提案し、承認 → 開始 → ユーザーが実施 → 結果と学習を記録する。
+6. `X DRAFTS` で出典・解釈・仮説・実験結果の範囲を確認し、編集・コピー・レビュー・承認を行う。
+7. `HISTORY` で処理履歴を確認する。
+
+ページ表示や更新だけで、収集、分析、下書き生成、実験実行、外部送信は起きません。Xへの投稿ボタンはありません。
+
+## CLIとテスト
+
+```bash
+npm run typecheck
+npm test
+npm run test:unit
+npm run test:integration
+npm run test:local-api
+npm run test:foundation
+```
+
+fixtureを使った一連の処理だけを実行する場合は `npm run pipeline:fixture`、DB migrationだけを確認する場合は `npm run db:init` を使います。テストは実X API、RSS、外部LLMを呼ばず、fixtureまたはfake providerを使用します。
+
+GitHub Actionsは[`ci.yml`](.github/workflows/ci.yml)で、Pull Requestまたは`workflow_dispatch`だけを受け付けます。schedule、push起動、外部書込み、Secret送信はありません。
+
+## ドキュメント
+
+- [`docs/RD_INTELLIGENCE.md`](docs/RD_INTELLIGENCE.md): architecture、Mermaid図、データモデル、API、セットアップ、セキュリティ、費用、拡張点、TODO
+- [`CODEX.md`](CODEX.md): このリポジトリでの開発・Git・外部接続ルール
+- [`docs/JARVIS_V1_HANDOFF.md`](docs/JARVIS_V1_HANDOFF.md): 前身プロジェクトの調査結果
+
+## プロジェクト方針
+
+- Local first
+- Explicit consent
+- Evidence before autonomy
+- Explainable ranking
+- Replaceable providers
+- Human approval before publishing
+- Understandable architecture
+
+情報源やLLMを追加する場合も、Collector / LlmProvider / ContentRendererの境界を保ち、まずfixtureとfake providerで検証します。実X API、RSS、外部LLM、Instagram連携を有効化するには、料金、利用規約、送信データ、資格情報の保存場所、停止方法を別途判断してください。
 
 ## Git運用
 
-安定版は`main`で管理し、開発は目的別ブランチで行います。
+現在の作業ブランチは `feat/sns` です。Codexは明示的な依頼がない限り、branch、stage、commit、push、merge、rebase、tag、PR作成を行いません。
 
-| 種別 | ブランチ | 例 |
-| --- | --- | --- |
-| 新機能 | `feat/<kebab-case>` | `feat/digital-twin` |
-| バグ修正 | `fix/<kebab-case>` | `fix/memory-search` |
-| UI/UX設計 | `design/<kebab-case>` | `design/dashboard` |
-| リファクタリング | `refactor/<kebab-case>` | `refactor/provider-interface` |
-| テスト | `test/<kebab-case>` | `test/memory-retrieval` |
-| ドキュメント | `docs/<kebab-case>` | `docs/setup-guide` |
-| 保守作業 | `chore/<kebab-case>` | `chore/update-dependencies` |
-| 調査・実験 | `research/<kebab-case>` | `research/local-llm` |
-
-ブランチ名には英小文字、数字、ハイフンを使用します。原則として一つのブランチには一つの目的だけを持たせます。
-
-コミットメッセージには次の接頭辞を使用します。
+推奨コミットメッセージ:
 
 ```text
-feat: 長期記憶の保存機能を追加
-fix: 空の会話で検索が失敗する問題を修正
-design: ダッシュボードのレイアウトを更新
-refactor: LLMプロバイダー境界を整理
-test: 記憶検索のテストを追加
-docs: ローカル起動手順を追加
-chore: 開発依存を更新
-research: ローカルモデル比較を記録
+feat: add local R&D intelligence loop MVP
 ```
-
-## GitHub Actions方針
-
-- MVP初期は定期実行を導入しません。
-- CIを導入する場合は、Pull Requestまたは手動実行から始めます。
-- cron、外部公開、release、package publishを行うWorkflowは、ゆーりの明示的な承認が必要です。
-- 外部APIや有料リソースを使うWorkflowは、費用上限と停止方法を先に文書化します。
-
