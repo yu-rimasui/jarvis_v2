@@ -6,25 +6,25 @@ import test from "node:test";
 import {
   PipelineExecutionError,
   ResearchPipeline,
-} from "../src/application/research-pipeline.js";
+} from "../src/features/rd-intelligence/application/research-pipeline.js";
 import type {
   Collector,
   CollectorResult,
-} from "../src/collectors/collector.js";
-import { FixtureCollector } from "../src/collectors/fixture-collector.js";
-import { ManualImportCollector } from "../src/collectors/manual-import-collector.js";
-import { XListTimelineCollector } from "../src/collectors/x-collector.js";
-import type { SourceItem } from "../src/domain/entities.js";
-import { createLogger } from "../src/logging/logger.js";
-import { FakeLlmProvider } from "../src/providers/fake-llm-provider.js";
-import type { LlmProvider } from "../src/providers/llm-provider.js";
-import { initializeDatabase } from "../src/storage/sqlite/initialize.js";
+} from "../src/features/rd-intelligence/collectors/collector.js";
+import { FixtureCollector } from "../src/features/rd-intelligence/collectors/fixture-collector.js";
+import { ManualImportCollector } from "../src/features/rd-intelligence/collectors/manual-import-collector.js";
+import { XListTimelineCollector } from "../src/features/rd-intelligence/collectors/x-collector.js";
+import type { SourceItem } from "../src/features/rd-intelligence/domain/entities.js";
+import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
+import { FakeLlmProvider } from "../src/features/rd-intelligence/providers/fake-llm-provider.js";
+import type { LlmProvider } from "../src/features/rd-intelligence/providers/llm-provider.js";
+import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
 import {
   SqliteAnalysisRepository,
   SqliteProcessingRunRepository,
   SqliteSourceItemRepository,
   SqliteTopicClusterRepository,
-} from "../src/storage/sqlite/pipeline-repositories.js";
+} from "../src/features/rd-intelligence/storage/sqlite/pipeline-repositories.js";
 
 const temporaryDirectories: string[] = [];
 

@@ -3,11 +3,11 @@ import test from "node:test";
 import {
   overallScore,
   type RankingComponents,
-} from "../src/domain/ranking.js";
+} from "../src/features/rd-intelligence/domain/ranking.js";
 import {
   parseAnalysis,
   type ParsedAnalysis,
-} from "../src/validation/analysis-parser.js";
+} from "../src/features/rd-intelligence/validation/analysis-parser.js";
 
 function components(
   relevance: number,

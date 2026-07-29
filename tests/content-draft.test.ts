@@ -11,35 +11,35 @@ import {
   ContentDraftTooLongError,
   ContentDraftTransitionError,
   DraftExperimentMismatchError,
-} from "../src/application/content-draft-service.js";
-import { ExperimentService } from "../src/application/experiment-service.js";
-import { ResearchPipeline } from "../src/application/research-pipeline.js";
-import { FixtureCollector } from "../src/collectors/fixture-collector.js";
+} from "../src/features/rd-intelligence/application/content-draft-service.js";
+import { ExperimentService } from "../src/features/rd-intelligence/application/experiment-service.js";
+import { ResearchPipeline } from "../src/features/rd-intelligence/application/research-pipeline.js";
+import { FixtureCollector } from "../src/features/rd-intelligence/collectors/fixture-collector.js";
 import {
   composedDraftText,
   type ContentRenderer,
   unicodeCharacterCount,
-} from "../src/content/content-renderer.js";
+} from "../src/features/rd-intelligence/content/content-renderer.js";
 import {
   allowedDraftTransitions,
   canTransitionDraft,
-} from "../src/domain/content-draft.js";
+} from "../src/features/rd-intelligence/domain/content-draft.js";
 import {
   DRAFT_STATUSES,
   type DraftStatus,
-} from "../src/domain/enums.js";
-import { createLogger } from "../src/logging/logger.js";
-import { FakeLlmProvider } from "../src/providers/fake-llm-provider.js";
-import type { ProcessingRunRepository } from "../src/storage/repositories.js";
-import { SqliteContentDraftRepository } from "../src/storage/sqlite/content-draft-repository.js";
-import { SqliteExperimentRepository } from "../src/storage/sqlite/experiment-repository.js";
-import { initializeDatabase } from "../src/storage/sqlite/initialize.js";
+} from "../src/features/rd-intelligence/domain/enums.js";
+import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
+import { FakeLlmProvider } from "../src/features/rd-intelligence/providers/fake-llm-provider.js";
+import type { ProcessingRunRepository } from "../src/features/rd-intelligence/storage/repositories.js";
+import { SqliteContentDraftRepository } from "../src/features/rd-intelligence/storage/sqlite/content-draft-repository.js";
+import { SqliteExperimentRepository } from "../src/features/rd-intelligence/storage/sqlite/experiment-repository.js";
+import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
 import {
   SqliteAnalysisRepository,
   SqliteProcessingRunRepository,
   SqliteSourceItemRepository,
   SqliteTopicClusterRepository,
-} from "../src/storage/sqlite/pipeline-repositories.js";
+} from "../src/features/rd-intelligence/storage/sqlite/pipeline-repositories.js";
 
 const temporaryDirectories: string[] = [];
 

@@ -8,27 +8,27 @@ import {
   ExperimentService,
   ExperimentTransitionError,
   SourceAnalysisNotFoundError,
-} from "../src/application/experiment-service.js";
-import { ResearchPipeline } from "../src/application/research-pipeline.js";
-import { FixtureCollector } from "../src/collectors/fixture-collector.js";
+} from "../src/features/rd-intelligence/application/experiment-service.js";
+import { ResearchPipeline } from "../src/features/rd-intelligence/application/research-pipeline.js";
+import { FixtureCollector } from "../src/features/rd-intelligence/collectors/fixture-collector.js";
 import {
   allowedExperimentTransitions,
   canTransitionExperiment,
-} from "../src/domain/experiment.js";
+} from "../src/features/rd-intelligence/domain/experiment.js";
 import {
   EXPERIMENT_STATUSES,
   type ExperimentStatus,
-} from "../src/domain/enums.js";
-import { createLogger } from "../src/logging/logger.js";
-import { FakeLlmProvider } from "../src/providers/fake-llm-provider.js";
-import { initializeDatabase } from "../src/storage/sqlite/initialize.js";
-import { SqliteExperimentRepository } from "../src/storage/sqlite/experiment-repository.js";
+} from "../src/features/rd-intelligence/domain/enums.js";
+import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
+import { FakeLlmProvider } from "../src/features/rd-intelligence/providers/fake-llm-provider.js";
+import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
+import { SqliteExperimentRepository } from "../src/features/rd-intelligence/storage/sqlite/experiment-repository.js";
 import {
   SqliteAnalysisRepository,
   SqliteProcessingRunRepository,
   SqliteSourceItemRepository,
   SqliteTopicClusterRepository,
-} from "../src/storage/sqlite/pipeline-repositories.js";
+} from "../src/features/rd-intelligence/storage/sqlite/pipeline-repositories.js";
 
 const temporaryDirectories: string[] = [];
 

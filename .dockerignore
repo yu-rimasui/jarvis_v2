@@ -1,0 +1,15 @@
+.git
+.codex
+.env
+.env.*
+!.env.example
+node_modules
+dist
+data
+mocks
+coverage
+__pycache__
+*.py[cod]
+.venv
+.pytest_cache
+.ruff_cache

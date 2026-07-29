@@ -64,21 +64,23 @@ flowchart LR
 
 ```text
 src/
-  api/          Local API、request validation、静的asset配信
-  application/  research pipeline、experiment、draft、digest、normalization
-  cli/          db:init、fixture pipeline、local API起動
-  collectors/   Collector interface、fixture、manual import、X boundary
-  content/      platform rendererとevidence guard
-  domain/       entities、enums、ranking、状態遷移
-  logging/      structured loggingとredacted error context
-  providers/    LlmProviderとfake provider
-  storage/      repository interfaceとSQLite実装
-  validation/   外部/LLM/API入力のruntime validation
+  features/
+    rd-intelligence/  Node.jsのR&D feature
+      api/            Local API、request validation、静的asset配信
+      application/    research pipeline、experiment、draft、digest、normalization
+      cli/            db:init、fixture pipeline、local API起動
+      collectors/     Collector interface、fixture、manual import、X boundary
+      content/        platform rendererとevidence guard
+      domain/         entities、enums、ranking、状態遷移
+      logging/        structured loggingとredacted error context
+      providers/      LlmProviderとfake provider
+      storage/        repository interfaceとSQLite実装
+      validation/     外部/LLM/API入力のruntime validation
+  jarvis/             Python application foundation
 migrations/     番号付きSQLite migration
 fixtures/       個人データを含まない合成source item
 tests/          unit、integration、local API、closed-loop安全性
-index.html      既存Jarvis dashboard + R&D導線
-rd-intelligence.js / rd-intelligence.css  R&D画面
+mocks/dashboard/  既存Jarvis dashboardモックとR&D導線の静的asset
 .github/workflows/ci.yml  PR/manual-only CI
 ```
 

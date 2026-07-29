@@ -60,7 +60,7 @@ const EXECUTABLE_SOURCE_SUFFIXES = [
 ] as const;
 
 const LOCAL_INBOUND_ADAPTER = resolve(
-  "src/api/local-api-server.ts",
+  "src/features/rd-intelligence/api/local-api-server.ts",
 );
 
 const SAFE_SOURCE_MODULES = new Set([
@@ -76,11 +76,11 @@ const SAFE_PACKAGE_SCRIPTS = {
   build: "tsc -p tsconfig.json",
   typecheck: "tsc -p tsconfig.json --noEmit",
   "db:init":
-    "npm run build --silent && node dist/src/cli/init-db.js",
+    "npm run build --silent && node dist/src/features/rd-intelligence/cli/init-db.js",
   "pipeline:fixture":
-    "npm run build --silent && node dist/src/cli/run-fixture.js",
+    "npm run build --silent && node dist/src/features/rd-intelligence/cli/run-fixture.js",
   "api:local":
-    "npm run build --silent && node dist/src/cli/run-local-api.js",
+    "npm run build --silent && node dist/src/features/rd-intelligence/cli/run-local-api.js",
   test: "npm run build --silent && node --test dist/tests/*.test.js",
   "test:unit":
     "npm run build --silent && node --test dist/tests/foundation.test.js dist/tests/analysis-ranking.test.js",
@@ -521,19 +521,19 @@ test("local R&D loop turns a manual import into reviewed evidence-backed draft a
       pipelineRepositoriesModule,
       localApiServerModule,
     ] = await Promise.all([
-      import("../src/application/content-draft-service.js"),
-      import("../src/application/daily-digest-service.js"),
-      import("../src/application/experiment-service.js"),
-      import("../src/application/research-pipeline.js"),
-      import("../src/collectors/manual-import-collector.js"),
-      import("../src/logging/logger.js"),
-      import("../src/providers/fake-llm-provider.js"),
-      import("../src/storage/sqlite/content-draft-repository.js"),
-      import("../src/storage/sqlite/daily-digest-repository.js"),
-      import("../src/storage/sqlite/experiment-repository.js"),
-      import("../src/storage/sqlite/initialize.js"),
-      import("../src/storage/sqlite/pipeline-repositories.js"),
-      import("../src/api/local-api-server.js"),
+      import("../src/features/rd-intelligence/application/content-draft-service.js"),
+      import("../src/features/rd-intelligence/application/daily-digest-service.js"),
+      import("../src/features/rd-intelligence/application/experiment-service.js"),
+      import("../src/features/rd-intelligence/application/research-pipeline.js"),
+      import("../src/features/rd-intelligence/collectors/manual-import-collector.js"),
+      import("../src/features/rd-intelligence/logging/logger.js"),
+      import("../src/features/rd-intelligence/providers/fake-llm-provider.js"),
+      import("../src/features/rd-intelligence/storage/sqlite/content-draft-repository.js"),
+      import("../src/features/rd-intelligence/storage/sqlite/daily-digest-repository.js"),
+      import("../src/features/rd-intelligence/storage/sqlite/experiment-repository.js"),
+      import("../src/features/rd-intelligence/storage/sqlite/initialize.js"),
+      import("../src/features/rd-intelligence/storage/sqlite/pipeline-repositories.js"),
+      import("../src/features/rd-intelligence/api/local-api-server.js"),
     ]);
     assert.equal(localApiServerModule.LOCAL_API_HOST, "127.0.0.1");
     assert.deepEqual(localApiServerModule.LOCAL_API_TIMEOUTS, {

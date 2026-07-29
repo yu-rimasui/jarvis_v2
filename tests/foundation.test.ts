@@ -14,16 +14,16 @@ import {
   CLAIM_CLASSES,
   DRAFT_STATUSES,
   EXPERIMENT_STATUSES,
-} from "../src/domain/enums.js";
+} from "../src/features/rd-intelligence/domain/enums.js";
 import {
   hashContent,
   normalizeUrl,
-} from "../src/application/normalization.js";
+} from "../src/features/rd-intelligence/application/normalization.js";
 import {
   createLogger,
   safeErrorContext,
-} from "../src/logging/logger.js";
-import { initializeDatabase } from "../src/storage/sqlite/initialize.js";
+} from "../src/features/rd-intelligence/logging/logger.js";
+import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
 
 const temporaryDirectories: string[] = [];
 

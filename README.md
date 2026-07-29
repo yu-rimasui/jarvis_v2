@@ -6,9 +6,28 @@ Jarvis v2は、ゆーり自身の記憶・能力・判断傾向・人格を少�
 
 ## 現在の状態
 
-このリポジトリは設計開始時点のドキュメントのみです。アプリケーションコード、依存パッケージ、GitHub Actions、定期実行はまだ導入していません。
+現在は、既存のNode.js／SQLiteによるR&D Intelligence MVPと、将来のPython／PostgreSQL／Vector DB構成へ移行するためのCompose設定基盤を併存させています。
+
+- R&D Intelligence MVP: `npm test`で検証できる既存のローカル縦切り
+- Python foundation: `pyproject.toml`、`src/jarvis/`、`Dockerfile`
+- Local infrastructure: `compose.yaml`（app、PostgreSQL、Qdrant）
+
+Python側は現在ヘルスチェック用の最小アプリのみです。既存R&D機能のPython移植、SQLiteからPostgreSQLへのデータ移行、Vector DBへの再インデックスはまだ実施していません。
 
 前身プロジェクトの調査結果は[`docs/JARVIS_V1_HANDOFF.md`](docs/JARVIS_V1_HANDOFF.md)を参照してください。Codexを使った開発ルールは[`CODEX.md`](CODEX.md)に定義しています。
+
+構成の境界と移行方針は[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)を参照してください。
+
+## Python／Compose foundation
+
+```bash
+cp .env.example .env
+docker compose config
+docker compose up --build
+curl http://127.0.0.1:8000/health
+```
+
+Composeは`app`、`postgres`、`vector-db`をローカル限定で起動します。`.env`にはローカル開発用の値だけを置き、実際のAPIキーや個人データは保存しないでください。
 
 ## MVPの目的
 
@@ -146,4 +165,3 @@ research: ローカルモデル比較を記録
 - CIを導入する場合は、Pull Requestまたは手動実行から始めます。
 - cron、外部公開、release、package publishを行うWorkflowは、ゆーりの明示的な承認が必要です。
 - 外部APIや有料リソースを使うWorkflowは、費用上限と停止方法を先に文書化します。
-

@@ -11,6 +11,10 @@ export interface StaticAsset {
   readonly contentType: string;
 }
 
+const DASHBOARD_MOCK_DIRECTORY = resolve("mocks", "dashboard");
+
+// The dashboard is a local presentation mock. It is served only through this
+// allowlist so a browser cannot read arbitrary repository files.
 const STATIC_ASSETS: ReadonlyMap<string, StaticAssetDescriptor> = new Map([
   [
     "/",
@@ -77,7 +81,7 @@ export async function readStaticAsset(
   if (descriptor === undefined) return undefined;
 
   return {
-    body: await readFile(resolve(descriptor.fileName)),
+    body: await readFile(resolve(DASHBOARD_MOCK_DIRECTORY, descriptor.fileName)),
     contentType: descriptor.contentType,
   };
 }

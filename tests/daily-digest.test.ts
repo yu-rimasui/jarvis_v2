@@ -3,28 +3,28 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { ContentDraftService } from "../src/application/content-draft-service.js";
-import { DailyDigestService } from "../src/application/daily-digest-service.js";
-import { ExperimentService } from "../src/application/experiment-service.js";
-import { ResearchPipeline } from "../src/application/research-pipeline.js";
-import { FixtureCollector } from "../src/collectors/fixture-collector.js";
-import type { ProcessingRun } from "../src/domain/entities.js";
-import { createLogger } from "../src/logging/logger.js";
-import { FakeLlmProvider } from "../src/providers/fake-llm-provider.js";
-import { SqliteContentDraftRepository } from "../src/storage/sqlite/content-draft-repository.js";
-import { SqliteDailyDigestRepository } from "../src/storage/sqlite/daily-digest-repository.js";
-import { SqliteExperimentRepository } from "../src/storage/sqlite/experiment-repository.js";
-import { initializeDatabase } from "../src/storage/sqlite/initialize.js";
+import { ContentDraftService } from "../src/features/rd-intelligence/application/content-draft-service.js";
+import { DailyDigestService } from "../src/features/rd-intelligence/application/daily-digest-service.js";
+import { ExperimentService } from "../src/features/rd-intelligence/application/experiment-service.js";
+import { ResearchPipeline } from "../src/features/rd-intelligence/application/research-pipeline.js";
+import { FixtureCollector } from "../src/features/rd-intelligence/collectors/fixture-collector.js";
+import type { ProcessingRun } from "../src/features/rd-intelligence/domain/entities.js";
+import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
+import { FakeLlmProvider } from "../src/features/rd-intelligence/providers/fake-llm-provider.js";
+import { SqliteContentDraftRepository } from "../src/features/rd-intelligence/storage/sqlite/content-draft-repository.js";
+import { SqliteDailyDigestRepository } from "../src/features/rd-intelligence/storage/sqlite/daily-digest-repository.js";
+import { SqliteExperimentRepository } from "../src/features/rd-intelligence/storage/sqlite/experiment-repository.js";
+import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
 import {
   SqliteAnalysisRepository,
   SqliteProcessingRunRepository,
   SqliteSourceItemRepository,
   SqliteTopicClusterRepository,
-} from "../src/storage/sqlite/pipeline-repositories.js";
+} from "../src/features/rd-intelligence/storage/sqlite/pipeline-repositories.js";
 import {
   asiaTokyoDayRange,
   asiaTokyoLocalDate,
-} from "../src/validation/digest-parser.js";
+} from "../src/features/rd-intelligence/validation/digest-parser.js";
 
 const temporaryDirectories: string[] = [];
 

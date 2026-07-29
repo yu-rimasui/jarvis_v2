@@ -8,15 +8,15 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { createLocalApiRuntime } from "../src/api/local-api-runtime.js";
+import { createLocalApiRuntime } from "../src/features/rd-intelligence/api/local-api-runtime.js";
 import {
   LOCAL_API_HOST,
   LOCAL_API_TIMEOUTS,
   MAX_JSON_BODY_BYTES,
   startLocalApiServer,
   type RunningLocalApi,
-} from "../src/api/local-api-server.js";
-import { createLogger } from "../src/logging/logger.js";
+} from "../src/features/rd-intelligence/api/local-api-server.js";
+import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -667,7 +667,8 @@ test("local API serves only the explicit same-origin dashboard assets", async ()
     assert.match(rdScript.text, /\/api\/health/u);
 
     for (const blockedPath of [
-      "/src/api/local-api-server.ts",
+      "/src/features/rd-intelligence/api/local-api-server.ts",
+      "/mocks/dashboard/index.html",
       "/data/rd-intelligence.sqlite",
       "/fixtures/source-items.json",
       "/index.html?cache=1",
