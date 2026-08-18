@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { DashboardPage } from "../features/dashboard/DashboardPage.js";
 import { featureDefinitions } from "../features/dashboard/feature-definitions.js";
+import { RdIntelligencePage } from "../features/rd-intelligence/RdIntelligencePage.js";
 import { AppShell } from "./AppShell.js";
 import { FeaturePlaceholderPage } from "./FeaturePlaceholderPage.js";
 import { NotFoundPage } from "./NotFoundPage.js";
@@ -21,16 +22,7 @@ export function App() {
           ))}
         <Route
           path="rd-intelligence"
-          element={
-            <FeaturePlaceholderPage
-              feature={
-                featureDefinitions.find(
-                  (feature) => feature.id === "rd-intelligence",
-                ) ?? featureDefinitions[0]!
-              }
-              activePlaceholder
-            />
-          }
+          element={<RdIntelligencePage />}
         />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
