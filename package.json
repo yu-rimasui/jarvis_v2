@@ -19,11 +19,11 @@
     "pipeline:fixture": "npm run build:server --silent && node dist/src/features/rd-intelligence/cli/run-fixture.js",
     "api:local": "npm run build --silent && node dist/src/features/rd-intelligence/cli/run-local-api.js",
     "test": "npm run test:server && npm run test:ui",
-    "test:server": "npm run build:server --silent && node --test dist/tests/*.test.js",
+    "test:server": "npm run build --silent && node --test dist/tests/*.test.js",
     "test:ui": "vitest run --config ui/vite.config.ts",
     "test:unit": "npm run build:server --silent && node --test dist/tests/foundation.test.js dist/tests/analysis-ranking.test.js",
-    "test:integration": "npm run build:server --silent && node --test dist/tests/pipeline.test.js dist/tests/experiment.test.js dist/tests/content-draft.test.js dist/tests/daily-digest.test.js dist/tests/local-api.test.js dist/tests/closed-loop.test.js",
-    "test:local-api": "npm run build:server --silent && node --test dist/tests/local-api.test.js",
+    "test:integration": "npm run build --silent && node --test dist/tests/pipeline.test.js dist/tests/experiment.test.js dist/tests/content-draft.test.js dist/tests/daily-digest.test.js dist/tests/local-api.test.js dist/tests/closed-loop.test.js",
+    "test:local-api": "npm run build --silent && node --test dist/tests/local-api.test.js",
     "test:foundation": "npm run build:server --silent && node --test dist/tests/foundation.test.js"
   },
   "devDependencies": {

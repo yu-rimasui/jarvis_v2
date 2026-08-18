@@ -11,65 +11,33 @@ export interface StaticAsset {
   readonly contentType: string;
 }
 
-const DASHBOARD_MOCK_DIRECTORY = resolve("mocks", "dashboard");
+const UI_BUILD_DIRECTORY = resolve("dist", "ui");
 
-// The dashboard is a local presentation mock. It is served only through this
-// allowlist so a browser cannot read arbitrary repository files.
+// Only routes declared by the React application receive its index document.
+// Arbitrary repository and build paths remain unreadable from the browser.
+const UI_ROUTES: ReadonlySet<string> = new Set([
+  "/",
+  "/index.html",
+  "/rd-intelligence",
+  "/chat",
+  "/memory",
+  "/tasks",
+  "/models",
+]);
+
 const STATIC_ASSETS: ReadonlyMap<string, StaticAssetDescriptor> = new Map([
   [
-    "/",
-    {
-      contentType: "text/html; charset=utf-8",
-      fileName: "index.html",
-    },
-  ],
-  [
-    "/index.html",
-    {
-      contentType: "text/html; charset=utf-8",
-      fileName: "index.html",
-    },
-  ],
-  [
-    "/app.js",
+    "/assets/app.js",
     {
       contentType: "text/javascript; charset=utf-8",
-      fileName: "app.js",
+      fileName: "assets/app.js",
     },
   ],
   [
-    "/rd-intelligence.js",
-    {
-      contentType: "text/javascript; charset=utf-8",
-      fileName: "rd-intelligence.js",
-    },
-  ],
-  [
-    "/styles.css",
+    "/assets/app.css",
     {
       contentType: "text/css; charset=utf-8",
-      fileName: "styles.css",
-    },
-  ],
-  [
-    "/dashboard.css",
-    {
-      contentType: "text/css; charset=utf-8",
-      fileName: "dashboard.css",
-    },
-  ],
-  [
-    "/motion.css",
-    {
-      contentType: "text/css; charset=utf-8",
-      fileName: "motion.css",
-    },
-  ],
-  [
-    "/rd-intelligence.css",
-    {
-      contentType: "text/css; charset=utf-8",
-      fileName: "rd-intelligence.css",
+      fileName: "assets/app.css",
     },
   ],
 ]);
@@ -77,11 +45,16 @@ const STATIC_ASSETS: ReadonlyMap<string, StaticAssetDescriptor> = new Map([
 export async function readStaticAsset(
   path: string,
 ): Promise<StaticAsset | undefined> {
-  const descriptor = STATIC_ASSETS.get(path);
+  const descriptor = UI_ROUTES.has(path)
+    ? {
+        contentType: "text/html; charset=utf-8",
+        fileName: "index.html",
+      }
+    : STATIC_ASSETS.get(path);
   if (descriptor === undefined) return undefined;
 
   return {
-    body: await readFile(resolve(DASHBOARD_MOCK_DIRECTORY, descriptor.fileName)),
+    body: await readFile(resolve(UI_BUILD_DIRECTORY, descriptor.fileName)),
     contentType: descriptor.contentType,
   };
 }

@@ -656,21 +656,34 @@ test("local API serves only the explicit same-origin dashboard assets", async ()
       String(dashboard.headers["content-security-policy"]),
       /connect-src 'self'/u,
     );
-    assert.match(dashboard.text, /rd-intelligence\.js/u);
+    assert.match(dashboard.text, /\/assets\/app\.js/u);
 
-    const rdScript = await textRequest(running, "/rd-intelligence.js");
-    assert.equal(rdScript.status, 200);
+    const appScript = await textRequest(running, "/assets/app.js");
+    assert.equal(appScript.status, 200);
     assert.match(
-      String(rdScript.headers["content-type"]),
+      String(appScript.headers["content-type"]),
       /^text\/javascript; charset=utf-8$/u,
     );
-    assert.match(rdScript.text, /\/api\/health/u);
+    assert.match(appScript.text, /\/api\/health/u);
+
+    const appStyles = await textRequest(running, "/assets/app.css");
+    assert.equal(appStyles.status, 200);
+    assert.match(
+      String(appStyles.headers["content-type"]),
+      /^text\/css; charset=utf-8$/u,
+    );
+
+    const rdRoute = await textRequest(running, "/rd-intelligence");
+    assert.equal(rdRoute.status, 200);
+    assert.match(rdRoute.text, /\/assets\/app\.js/u);
 
     for (const blockedPath of [
       "/src/features/rd-intelligence/api/local-api-server.ts",
       "/mocks/dashboard/index.html",
       "/data/rd-intelligence.sqlite",
       "/fixtures/source-items.json",
+      "/rd-intelligence.js",
+      "/assets/app.js.map",
       "/index.html?cache=1",
     ]) {
       const blocked = await textRequest(running, blockedPath);

@@ -11,6 +11,13 @@ export default defineConfig({
     outDir: fileURLToPath(new URL("../dist/ui", import.meta.url)),
     emptyOutDir: true,
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: "assets/app.js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/app[extname]",
+      },
+    },
   },
   server: {
     host: "127.0.0.1",

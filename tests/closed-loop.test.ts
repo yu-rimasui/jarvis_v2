@@ -73,23 +73,50 @@ const SAFE_SOURCE_MODULES = new Set([
 ]);
 
 const SAFE_PACKAGE_SCRIPTS = {
-  build: "tsc -p tsconfig.json",
-  typecheck: "tsc -p tsconfig.json --noEmit",
+  build: "npm run build:server && npm run build:ui",
+  "build:server": "tsc -p tsconfig.json",
+  "build:ui": "vite build --config ui/vite.config.ts",
+  typecheck: "npm run typecheck:server && npm run typecheck:ui",
+  "typecheck:server": "tsc -p tsconfig.json --noEmit",
+  "typecheck:ui": "tsc -p ui/tsconfig.json --noEmit",
+  "dev:ui": "vite --config ui/vite.config.ts",
   "db:init":
-    "npm run build --silent && node dist/src/features/rd-intelligence/cli/init-db.js",
+    "npm run build:server --silent && node dist/src/features/rd-intelligence/cli/init-db.js",
   "pipeline:fixture":
-    "npm run build --silent && node dist/src/features/rd-intelligence/cli/run-fixture.js",
+    "npm run build:server --silent && node dist/src/features/rd-intelligence/cli/run-fixture.js",
   "api:local":
     "npm run build --silent && node dist/src/features/rd-intelligence/cli/run-local-api.js",
-  test: "npm run build --silent && node --test dist/tests/*.test.js",
+  test: "npm run test:server && npm run test:ui",
+  "test:server": "npm run build --silent && node --test dist/tests/*.test.js",
+  "test:ui": "vitest run --config ui/vite.config.ts",
   "test:unit":
-    "npm run build --silent && node --test dist/tests/foundation.test.js dist/tests/analysis-ranking.test.js",
+    "npm run build:server --silent && node --test dist/tests/foundation.test.js dist/tests/analysis-ranking.test.js",
   "test:integration":
     "npm run build --silent && node --test dist/tests/pipeline.test.js dist/tests/experiment.test.js dist/tests/content-draft.test.js dist/tests/daily-digest.test.js dist/tests/local-api.test.js dist/tests/closed-loop.test.js",
   "test:local-api":
     "npm run build --silent && node --test dist/tests/local-api.test.js",
   "test:foundation":
-    "npm run build --silent && node --test dist/tests/foundation.test.js",
+    "npm run build:server --silent && node --test dist/tests/foundation.test.js",
+} as const;
+
+const SAFE_RUNTIME_DEPENDENCIES = {
+  react: "^19.2.8",
+  "react-dom": "^19.2.8",
+  "react-router-dom": "^7.18.2",
+} as const;
+
+const SAFE_DEVELOPMENT_DEPENDENCIES = {
+  "@testing-library/jest-dom": "^7.0.1",
+  "@testing-library/react": "^16.3.2",
+  "@testing-library/user-event": "^14.6.5",
+  "@types/node": "22.20.1",
+  "@types/react": "^19.2.18",
+  "@types/react-dom": "^19.2.4",
+  "@vitejs/plugin-react": "^6.0.5",
+  jsdom: "^29.1.1",
+  typescript: "5.9.3",
+  vite: "^8.2.1",
+  vitest: "^4.1.10",
 } as const;
 
 function executableSources(
@@ -426,11 +453,12 @@ function assertSafePackageManifest(): void {
     "package.json must contain an object",
   );
   const manifest = parsed as Readonly<Record<string, unknown>>;
-  for (const field of [
-    "dependencies",
-    "optionalDependencies",
-    "peerDependencies",
-  ]) {
+  assert.deepEqual(
+    manifest["dependencies"],
+    SAFE_RUNTIME_DEPENDENCIES,
+    "runtime dependencies must stay within the reviewed local UI toolchain",
+  );
+  for (const field of ["optionalDependencies", "peerDependencies"]) {
     assert.deepEqual(
       manifest[field] ?? {},
       {},
@@ -449,10 +477,7 @@ function assertSafePackageManifest(): void {
   );
   assert.deepEqual(
     manifest["devDependencies"],
-    {
-      "@types/node": "22.20.1",
-      typescript: "5.9.3",
-    },
+    SAFE_DEVELOPMENT_DEPENDENCIES,
     "development executables must remain pinned to the reviewed toolchain",
   );
 }
