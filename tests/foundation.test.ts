@@ -101,6 +101,7 @@ test("database initialization applies the schema once and is idempotent", () => 
       "002_analysis_claims",
       "003_experiment_events",
       "004_content_draft_evidence",
+      "005_rd_intelligence_vault",
     ],
   );
   assert.deepEqual(first.migrations.alreadyApplied, []);
@@ -151,6 +152,7 @@ test("database initialization applies the schema once and is idempotent", () => 
     "002_analysis_claims",
     "003_experiment_events",
     "004_content_draft_evidence",
+    "005_rd_intelligence_vault",
   ]);
   second.database.close();
   assert.equal(lines.length, 2);

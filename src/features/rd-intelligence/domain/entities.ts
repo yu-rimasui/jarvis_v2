@@ -7,6 +7,7 @@ import type {
   ProcessingOperation,
   ProcessingStatus,
   SourceType,
+  TrialDifficulty,
 } from "./enums.js";
 
 export type EntityId = string;
@@ -58,6 +59,13 @@ export interface Analysis {
   readonly whyItMatters: string;
   readonly workUse: string;
   readonly suggestedFirstExperiment: string;
+  readonly trialDifficulty: TrialDifficulty;
+  readonly requiredEnvironment: readonly string[];
+  readonly hypothesis: string;
+  readonly expectedValue: string;
+  readonly estimatedEffort: string;
+  readonly successCriteria: string;
+  readonly verificationMethod: string;
   readonly relatedTechnologies: readonly string[];
   readonly relatedRepositories: readonly string[];
   readonly risksAndLimitations: readonly string[];

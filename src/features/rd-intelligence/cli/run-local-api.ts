@@ -64,6 +64,7 @@ try {
     databasePath: options.databasePath,
     migrationsDirectory: options.migrationsDirectory,
     logger,
+    enableLocalIntegrations: true,
   });
   const running = await startLocalApiServer(runtime.application, {
     port: options.port,

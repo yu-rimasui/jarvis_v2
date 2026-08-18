@@ -30,6 +30,9 @@ export interface ResearchPipelineDependencies {
   readonly repositories: ResearchPipelineRepositories;
   readonly llmProvider: LlmProvider;
   readonly logger: Logger;
+  readonly analysisSink?: {
+    saveInput(item: SourceItem, analysis: Analysis): Promise<void>;
+  };
   readonly id?: () => string;
   readonly now?: () => Date;
 }
@@ -181,6 +184,10 @@ export class ResearchPipeline {
             );
           }
           await this.ensureTopicCluster(item, existingAnalysis);
+          await this.dependencies.analysisSink?.saveInput(
+            item,
+            existingAnalysis,
+          );
           run = this.processingRun({
             runId,
             sourceOrProvider,
@@ -212,6 +219,13 @@ export class ResearchPipeline {
           whyItMatters: parsed.whyItMatters,
           workUse: parsed.workUse,
           suggestedFirstExperiment: parsed.suggestedFirstExperiment,
+          trialDifficulty: parsed.trialDifficulty,
+          requiredEnvironment: parsed.requiredEnvironment,
+          hypothesis: parsed.hypothesis,
+          expectedValue: parsed.expectedValue,
+          estimatedEffort: parsed.estimatedEffort,
+          successCriteria: parsed.successCriteria,
+          verificationMethod: parsed.verificationMethod,
           relatedTechnologies: parsed.relatedTechnologies,
           relatedRepositories: parsed.relatedRepositories,
           risksAndLimitations: parsed.risksAndLimitations,
@@ -250,6 +264,10 @@ export class ResearchPipeline {
             );
           }
           await this.ensureTopicCluster(item, existingAnalysis);
+          await this.dependencies.analysisSink?.saveInput(
+            item,
+            existingAnalysis,
+          );
           run = this.processingRun({
             runId,
             sourceOrProvider,
@@ -263,6 +281,7 @@ export class ResearchPipeline {
         }
 
         await this.ensureTopicCluster(item, analysis);
+        await this.dependencies.analysisSink?.saveInput(item, analysis);
 
         counts.processed += 1;
         run = this.processingRun({

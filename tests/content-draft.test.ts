@@ -11,6 +11,8 @@ import {
   ContentDraftTooLongError,
   ContentDraftTransitionError,
   DraftExperimentMismatchError,
+  DraftExperimentIncompleteError,
+  DraftExperimentRequiredError,
 } from "../src/features/rd-intelligence/application/content-draft-service.js";
 import { ExperimentService } from "../src/features/rd-intelligence/application/experiment-service.js";
 import { ResearchPipeline } from "../src/features/rd-intelligence/application/research-pipeline.js";
@@ -31,6 +33,7 @@ import {
 import { createLogger } from "../src/features/rd-intelligence/logging/logger.js";
 import { FakeLlmProvider } from "../src/features/rd-intelligence/providers/fake-llm-provider.js";
 import type { ProcessingRunRepository } from "../src/features/rd-intelligence/storage/repositories.js";
+import type { KnowledgeVault } from "../src/features/rd-intelligence/vault/knowledge-vault.js";
 import { SqliteContentDraftRepository } from "../src/features/rd-intelligence/storage/sqlite/content-draft-repository.js";
 import { SqliteExperimentRepository } from "../src/features/rd-intelligence/storage/sqlite/experiment-repository.js";
 import { initializeDatabase } from "../src/features/rd-intelligence/storage/sqlite/initialize.js";
@@ -285,6 +288,81 @@ test("completed experiment evidence produces a bounded, traceable X draft", asyn
     assert.equal(detail.draft.modelId, "deterministic-x-renderer-v1");
     assert.equal(detail.draft.promptVersion, "x-draft-v1");
     assert.equal(detail.events.length, 1);
+  } finally {
+    context.database.close();
+  }
+});
+
+test("Vault workflow requires a completed practice log before Ollama draft generation", async () => {
+  const context = await createContext();
+  try {
+    const analysisId = context.analysisIds[0] as string;
+    const analysis = await context.analyses.findById(analysisId);
+    assert.ok(analysis);
+    const source = await context.sourceItems.findById(analysis.sourceItemId);
+    assert.ok(source?.canonicalUrl);
+    let savedDraftText = "";
+    const vault = {
+      readPractice: async () => ({
+        note: { absolutePath: "/vault/practice.md", relativePath: "02 - 実践ログ/practice.md" },
+        hypothesisSupport: "supported" as const,
+        evidence: {
+          environment: "Node.js",
+          actions: "fixtureを比較した",
+          result: "手作業が1つ減った",
+          errors: "なし",
+          learning: "入力を絞ると再現しやすい",
+          publishableExperience: "ローカルで比較した",
+          images: [],
+        },
+      }),
+      findInputForSource: async () => ({
+        absolutePath: "/vault/input.md",
+        relativePath: "01 - インプット/input.md",
+      }),
+      saveDraft: async (_draft: unknown, _title: unknown, _sourceId: unknown, _sourceNote: unknown, _practiceNote: unknown, text: string) => {
+        savedDraftText = text;
+        return { absolutePath: "/vault/draft.md", relativePath: "03 - ポスト下書き/draft.md" };
+      },
+    } as unknown as KnowledgeVault;
+    const service = new ContentDraftService({
+      analyses: context.analyses,
+      sourceItems: context.sourceItems,
+      experiments: context.experiments,
+      drafts: context.drafts,
+      processingRuns: context.processingRuns,
+      logger: createLogger(() => undefined),
+      vault,
+      xDraftProvider: {
+        providerId: "ollama-local",
+        modelId: "qwen3-vl:8b",
+        promptVersion: "x-draft-v1",
+        generateXDraft: async ({ sourceItem }) => ({
+          text: `ローカルで比較し、手作業が1つ減りました。入力を絞ると再現しやすいです。 ${sourceItem.canonicalUrl ?? ""}`,
+        }),
+      },
+    });
+
+    await assert.rejects(() => service.generateX(analysisId), DraftExperimentRequiredError);
+    const experiment = await context.experimentService.propose(
+      analysisId,
+      proposalInput("Vault practice"),
+    );
+    await assert.rejects(
+      () => service.generateX(analysisId, experiment.id),
+      DraftExperimentIncompleteError,
+    );
+    await context.experimentService.approve(experiment.id);
+    await context.experimentService.start(experiment.id);
+    await context.experimentService.complete(
+      experiment.id,
+      completionInput("ローカルで比較した"),
+    );
+    const generated = await service.generateX(analysisId, experiment.id);
+    assert.equal(generated.draft.providerId, "ollama-local");
+    assert.equal(generated.draft.evidenceScope, "completed_experiment");
+    assert.ok(savedDraftText.includes(source.canonicalUrl));
+    assert.ok(generated.draft.characterCount <= 280);
   } finally {
     context.database.close();
   }

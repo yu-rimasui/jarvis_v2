@@ -64,6 +64,14 @@ export function importBody(value: unknown): JsonObject {
   return allowedFields(value, "request", new Set(["items"]));
 }
 
+export function xImportBody(value: unknown): JsonObject {
+  return allowedFields(
+    value,
+    "request",
+    new Set(["canonicalUrl", "content", "author", "publishedAt", "sourceExternalId", "title"]),
+  );
+}
+
 export function proposalBody(value: unknown): JsonObject {
   return allowedFields(value, "request", PROPOSAL_FIELDS);
 }

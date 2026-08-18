@@ -78,6 +78,14 @@ export class FakeLlmProvider implements LlmProvider {
         "既存作業の一部に限定して比較し、採用判断の材料として利用できます。",
       suggestedFirstExperiment:
         "30分以内の最小構成で試し、現在の方法と結果・所要時間を比較する。",
+      trialDifficulty: "intermediate",
+      requiredEnvironment: ["Node.js", "ローカル検証環境"],
+      hypothesis:
+        "限定した作業へ導入すると、現在の方法より手順を減らせる。",
+      expectedValue: "採用判断に使える実行結果と所要時間を記録できる。",
+      estimatedEffort: "30分",
+      successCriteria: "現在の方法と比較できる結果と根拠が残る。",
+      verificationMethod: "同じ入力で現在の方法と新しい方法を実行して比較する。",
       relatedTechnologies: technologies(
         `${item.title}\n${item.content}`,
       ),

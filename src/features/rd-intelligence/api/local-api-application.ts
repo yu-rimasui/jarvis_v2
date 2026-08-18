@@ -1,9 +1,12 @@
-import type {
-  ContentDraftService,
+import {
+  DraftExperimentRequiredError,
+  type ContentDraftService,
 } from "../application/content-draft-service.js";
 import type { DailyDigestService } from "../application/daily-digest-service.js";
 import type { ExperimentService } from "../application/experiment-service.js";
 import type { ResearchPipeline } from "../application/research-pipeline.js";
+import type { PracticeWorkflowService } from "../application/practice-workflow-service.js";
+import type { RssCollectionService } from "../application/rss-collection-service.js";
 import { ManualImportCollector } from "../collectors/manual-import-collector.js";
 import type {
   AnalysisRepository,
@@ -11,7 +14,10 @@ import type {
   SourceItemRepository,
 } from "../storage/repositories.js";
 import { parseAnalysisId } from "../validation/experiment-parser.js";
-import { parseRawSourceItems } from "../validation/source-item-parser.js";
+import {
+  parseRawSourceItems,
+  ValidationError,
+} from "../validation/source-item-parser.js";
 
 export class InsightNotFoundError extends Error {
   readonly code = "INSIGHT_NOT_FOUND";
@@ -29,6 +35,10 @@ export class InsightSourceNotFoundError extends Error {
     super("The source item for the ranked insight does not exist");
     this.name = "InsightSourceNotFoundError";
   }
+}
+
+export class LocalIntegrationUnavailableError extends Error {
+  readonly code = "LOCAL_INTEGRATION_UNAVAILABLE";
 }
 
 export interface LocalApiApplicationDependencies {
@@ -61,9 +71,13 @@ export interface LocalApiApplicationDependencies {
     | "list"
     | "reject"
     | "submitForReview"
+    | "reload"
   >;
   readonly processingRuns: Pick<ProcessingRunRepository, "list">;
   readonly digests: Pick<DailyDigestService, "generate">;
+  readonly collections: Pick<RssCollectionService, "collect">;
+  readonly practice?: Pick<PracticeWorkflowService, "start" | "importLog">;
+  readonly readiness: () => Promise<unknown>;
 }
 
 export class LocalApiApplication {
@@ -76,6 +90,69 @@ export class LocalApiApplication {
     return this.dependencies.pipeline.run(
       new ManualImportCollector(items),
     );
+  }
+
+  async readiness() {
+    return this.dependencies.readiness();
+  }
+
+  async collectRss() {
+    return this.dependencies.collections.collect();
+  }
+
+  async importX(inputValue: unknown) {
+    if (
+      typeof inputValue !== "object" ||
+      inputValue === null ||
+      Array.isArray(inputValue)
+    ) {
+      return this.importInbox(inputValue);
+    }
+    const input = inputValue as Readonly<Record<string, unknown>>;
+    const canonicalUrl = input["canonicalUrl"];
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(typeof canonicalUrl === "string" ? canonicalUrl : "");
+    } catch {
+      throw new ValidationError(
+        "request.canonicalUrl",
+        "must be an X post URL",
+      );
+    }
+    if (
+      parsedUrl.protocol !== "https:" ||
+      !["x.com", "www.x.com", "twitter.com", "www.twitter.com"].includes(
+        parsedUrl.hostname.toLocaleLowerCase("en-US"),
+      ) ||
+      !/^\/[^/]+\/status\/\d+/u.test(parsedUrl.pathname)
+    ) {
+      throw new ValidationError(
+        "request.canonicalUrl",
+        "must be an HTTPS X post URL",
+      );
+    }
+    return this.importInbox([
+      {
+        ...input,
+        sourceType: "x",
+        title: input["title"] ?? "X投稿",
+        sourceMetadata: {},
+      },
+    ]);
+  }
+
+  async startPractice(analysisIdValue: unknown) {
+    if (this.dependencies.practice === undefined) {
+      throw new LocalIntegrationUnavailableError();
+    }
+    return this.dependencies.practice.start(analysisIdValue);
+  }
+
+  async importPracticeLog(experimentIdValue: unknown) {
+    if (this.dependencies.practice === undefined) {
+      throw new LocalIntegrationUnavailableError();
+    }
+    return this.dependencies.practice.importLog(experimentIdValue);
   }
 
   async listInbox(limit: number) {
@@ -161,6 +238,9 @@ export class LocalApiApplication {
     analysisIdValue: unknown,
     experimentIdValue?: unknown,
   ) {
+    if (experimentIdValue === undefined) {
+      throw new DraftExperimentRequiredError();
+    }
     return this.dependencies.drafts.generateX(
       analysisIdValue,
       experimentIdValue,
@@ -173,6 +253,10 @@ export class LocalApiApplication {
 
   async getDraft(draftIdValue: unknown) {
     return this.dependencies.drafts.getDetail(draftIdValue);
+  }
+
+  async reloadDraft(draftIdValue: unknown) {
+    return this.dependencies.drafts.reload(draftIdValue);
   }
 
   async editDraft(draftIdValue: unknown, inputValue: unknown) {

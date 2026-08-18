@@ -33,6 +33,14 @@ export const SOURCE_TYPES = [
 
 export type SourceType = (typeof SOURCE_TYPES)[number];
 
+export const TRIAL_DIFFICULTIES = [
+  "beginner",
+  "intermediate",
+  "advanced",
+] as const;
+
+export type TrialDifficulty = (typeof TRIAL_DIFFICULTIES)[number];
+
 export const EXPERIMENT_STATUSES = [
   "proposed",
   "approved",

@@ -39,6 +39,13 @@ function validAnalysis(): Readonly<Record<string, unknown>> {
     whyItMatters: "小さな実験に変換できる可能性があります。",
     workUse: "既存フローとの比較に利用できます。",
     suggestedFirstExperiment: "30分のローカル比較を実施する。",
+    trialDifficulty: "beginner",
+    requiredEnvironment: ["Node.js"],
+    hypothesis: "最小構成なら短時間で再現できる。",
+    expectedValue: "採否判断に使える一次体験を得る。",
+    estimatedEffort: "30分",
+    successCriteria: "結果を再現できる。",
+    verificationMethod: "同じ手順を2回実行する。",
     relatedTechnologies: ["TypeScript", "MCP"],
     relatedRepositories: [
       "https://github.com/modelcontextprotocol/typescript-sdk",

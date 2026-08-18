@@ -555,11 +555,20 @@ test("local API persists the complete inbox, insight, experiment, draft, digest,
       ["draft", "draft", "needs_review", "approved"],
     );
 
-    const rejectedDraftResponse = await apiRequest(
+    const missingExperiment = await apiRequest(
       running,
       "POST",
       `/api/insights/${analysisId}/x-drafts`,
       jsonBody({}),
+    );
+    assert.equal(missingExperiment.status, 422);
+    assert.equal(errorCode(missingExperiment), "DRAFT_EXPERIMENT_REQUIRED");
+
+    const rejectedDraftResponse = await apiRequest(
+      running,
+      "POST",
+      `/api/insights/${analysisId}/x-drafts`,
+      jsonBody({ experimentId }),
     );
     const rejectedDraftId = stringField(
       field(responseData(rejectedDraftResponse), "draft"),

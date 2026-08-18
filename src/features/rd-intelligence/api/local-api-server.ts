@@ -19,6 +19,7 @@ import {
   proposalBody,
   reasonBody,
   rejectSearchParams,
+  xImportBody,
 } from "./request-validation.js";
 import { LocalApiApplication } from "./local-api-application.js";
 import { readStaticAsset } from "./local-static-assets.js";
@@ -26,10 +27,10 @@ import { readStaticAsset } from "./local-static-assets.js";
 export const LOCAL_API_HOST = "127.0.0.1";
 export const MAX_JSON_BODY_BYTES = 1_048_576;
 export const LOCAL_API_TIMEOUTS = {
-  request: 15_000,
+  request: 1_800_000,
   headers: 5_000,
   keepAlive: 2_000,
-  socket: 15_000,
+  socket: 1_800_000,
   maxRequestsPerSocket: 100,
 } as const;
 
@@ -155,6 +156,18 @@ const PUBLIC_DOMAIN_ERRORS: ReadonlyMap<
       message: "The X draft contains unsupported evidence claims.",
     },
   ],
+  ["DRAFT_EXPERIMENT_REQUIRED", { status: 422, message: "A completed experimentId is required." }],
+  ["DRAFT_EXPERIMENT_INCOMPLETE", { status: 422, message: "Only a completed practice log can produce an X draft." }],
+  ["PRACTICE_ANALYSIS_NOT_FOUND", { status: 404, message: "The practice analysis does not exist." }],
+  ["PRACTICE_SOURCE_NOT_FOUND", { status: 404, message: "The practice source does not exist." }],
+  ["PRACTICE_EXPERIMENT_NOT_FOUND", { status: 404, message: "The practice experiment does not exist." }],
+  ["PRACTICE_EXPERIMENT_INVALID_STATE", { status: 409, message: "The practice experiment is not in the required state." }],
+  ["LOCAL_INTEGRATION_UNAVAILABLE", { status: 503, message: "The local Vault integration is unavailable." }],
+  ["VAULT_BOUNDARY_VIOLATION", { status: 422, message: "The Vault reference is outside the allowed R&D area." }],
+  ["VAULT_NOTE_INVALID", { status: 422, message: "The Obsidian note is incomplete or invalid." }],
+  ["VAULT_NOTE_NOT_FOUND", { status: 404, message: "The required Obsidian note does not exist." }],
+  ["OLLAMA_REQUEST_FAILED", { status: 503, message: "The local Ollama request failed." }],
+  ["OLLAMA_OUTPUT_INVALID", { status: 422, message: "Ollama did not return valid structured output." }],
 ]);
 
 function sendJson(
@@ -535,6 +548,23 @@ async function route(
     });
     return;
   }
+  if (method === "GET" && path === "/api/readiness") {
+    rejectSearchParams(url.searchParams);
+    sendJson(response, 200, { data: await application.readiness() });
+    return;
+  }
+  if (method === "POST" && path === "/api/collections/rss") {
+    rejectSearchParams(url.searchParams);
+    emptyBody(await readJsonBody(request));
+    sendJson(response, 200, { data: { feeds: await application.collectRss() } });
+    return;
+  }
+  if (method === "POST" && path === "/api/inbox/x-import") {
+    rejectSearchParams(url.searchParams);
+    const body = xImportBody(await readJsonBody(request));
+    sendJson(response, 200, { data: { run: await application.importX(body) } });
+    return;
+  }
   if (method === "GET" && path === "/api/inbox") {
     const limit = parseListLimit(url.searchParams);
     sendJson(response, 200, {
@@ -571,6 +601,17 @@ async function route(
   const proposalMatch = path.match(
     /^\/api\/insights\/([^/]+)\/experiments$/u,
   );
+  const practiceNoteMatch = path.match(
+    /^\/api\/insights\/([^/]+)\/practice-note$/u,
+  );
+  if (method === "POST" && practiceNoteMatch !== null) {
+    rejectSearchParams(url.searchParams);
+    emptyBody(await readJsonBody(request));
+    sendJson(response, 201, {
+      data: await application.startPractice(pathId(practiceNoteMatch, "analysisId")),
+    });
+    return;
+  }
   if (method === "POST" && proposalMatch !== null) {
     rejectSearchParams(url.searchParams);
     const body = proposalBody(await readJsonBody(request));
@@ -621,6 +662,17 @@ async function route(
   const experimentActionMatch = path.match(
     /^\/api\/experiments\/([^/]+)\/(approve|start|reject|block|complete)$/u,
   );
+  const practiceImportMatch = path.match(
+    /^\/api\/experiments\/([^/]+)\/import-log$/u,
+  );
+  if (method === "POST" && practiceImportMatch !== null) {
+    rejectSearchParams(url.searchParams);
+    emptyBody(await readJsonBody(request));
+    sendJson(response, 200, {
+      data: await application.importPracticeLog(pathId(practiceImportMatch, "experimentId")),
+    });
+    return;
+  }
   if (method === "POST" && experimentActionMatch !== null) {
     rejectSearchParams(url.searchParams);
     const experimentId = pathId(
@@ -708,6 +760,17 @@ async function route(
   const draftActionMatch = path.match(
     /^\/api\/x-drafts\/([^/]+)\/(review|approve|reject)$/u,
   );
+  const draftReloadMatch = path.match(
+    /^\/api\/x-drafts\/([^/]+)\/reload$/u,
+  );
+  if (method === "POST" && draftReloadMatch !== null) {
+    rejectSearchParams(url.searchParams);
+    emptyBody(await readJsonBody(request));
+    sendJson(response, 200, {
+      data: { draft: await application.reloadDraft(pathId(draftReloadMatch, "draftId")) },
+    });
+    return;
+  }
   if (method === "POST" && draftActionMatch !== null) {
     rejectSearchParams(url.searchParams);
     const draftId = pathId(draftActionMatch, "draftId");
@@ -781,6 +844,7 @@ async function route(
 function allowedMethods(path: string): string | undefined {
   if (
     path === "/api/health" ||
+    path === "/api/readiness" ||
     path === "/api/inbox" ||
     path === "/api/insights" ||
     path === "/api/experiments" ||
@@ -789,7 +853,12 @@ function allowedMethods(path: string): string | undefined {
   ) {
     return "GET";
   }
-  if (path === "/api/inbox/import" || path === "/api/digests") {
+  if (
+    path === "/api/inbox/import" ||
+    path === "/api/inbox/x-import" ||
+    path === "/api/collections/rss" ||
+    path === "/api/digests"
+  ) {
     return "POST";
   }
   if (
@@ -799,11 +868,11 @@ function allowedMethods(path: string): string | undefined {
     return "GET";
   }
   if (
-    /^\/api\/insights\/[^/]+\/(?:experiments|x-drafts)$/u.test(path) ||
-    /^\/api\/experiments\/[^/]+\/(?:approve|start|reject|block|complete)$/u.test(
+    /^\/api\/insights\/[^/]+\/(?:experiments|practice-note|x-drafts)$/u.test(path) ||
+    /^\/api\/experiments\/[^/]+\/(?:approve|start|reject|block|complete|import-log)$/u.test(
       path,
     ) ||
-    /^\/api\/x-drafts\/[^/]+\/(?:review|approve|reject)$/u.test(path)
+    /^\/api\/x-drafts\/[^/]+\/(?:review|approve|reject|reload)$/u.test(path)
   ) {
     return "POST";
   }

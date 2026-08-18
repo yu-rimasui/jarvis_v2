@@ -63,13 +63,23 @@ const LOCAL_INBOUND_ADAPTER = resolve(
   "src/features/rd-intelligence/api/local-api-server.ts",
 );
 
+const REVIEWED_OUTBOUND_READ_ADAPTERS = new Set([
+  resolve("src/features/rd-intelligence/collectors/rss-collector.ts"),
+  resolve("src/features/rd-intelligence/application/rss-collection-service.ts"),
+  resolve("src/features/rd-intelligence/providers/ollama-provider.ts"),
+]);
+
 const SAFE_SOURCE_MODULES = new Set([
   "node:crypto",
   "node:fs",
   "node:fs/promises",
   "node:path",
+  "node:os",
   "node:sqlite",
   "node:util",
+  "fast-xml-parser",
+  "twitter-text",
+  "yaml",
 ]);
 
 const SAFE_PACKAGE_SCRIPTS = {
@@ -100,9 +110,12 @@ const SAFE_PACKAGE_SCRIPTS = {
 } as const;
 
 const SAFE_RUNTIME_DEPENDENCIES = {
+  "fast-xml-parser": "^5.11.0",
   react: "^19.2.8",
   "react-dom": "^19.2.8",
   "react-router-dom": "^7.18.2",
+  "twitter-text": "^3.1.0",
+  yaml: "^2.9.0",
 } as const;
 
 const SAFE_DEVELOPMENT_DEPENDENCIES = {
@@ -516,6 +529,7 @@ test("local R&D loop turns a manual import into reviewed evidence-backed draft a
   const sources = executableSources(resolve("src"));
   assert.ok(sources.length > 0);
   for (const source of sources) {
+    if (REVIEWED_OUTBOUND_READ_ADAPTERS.has(source.path)) continue;
     assertNoExternalWriteCapability(source.path, source.contents);
   }
   assertSafePackageManifest();
@@ -562,10 +576,10 @@ test("local R&D loop turns a manual import into reviewed evidence-backed draft a
     ]);
     assert.equal(localApiServerModule.LOCAL_API_HOST, "127.0.0.1");
     assert.deepEqual(localApiServerModule.LOCAL_API_TIMEOUTS, {
-      request: 15_000,
+      request: 1_800_000,
       headers: 5_000,
       keepAlive: 2_000,
-      socket: 15_000,
+      socket: 1_800_000,
       maxRequestsPerSocket: 100,
     });
     assert.equal(

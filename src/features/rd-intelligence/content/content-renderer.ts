@@ -36,7 +36,9 @@ export function composedDraftText(content: {
   readonly body: string;
   readonly keyTakeaway: string;
 }): string {
-  return [content.hook, content.body, content.keyTakeaway].join("\n\n");
+  return [content.hook, content.body, content.keyTakeaway]
+    .filter((part) => part.trim() !== "")
+    .join("\n\n");
 }
 
 export function unicodeCharacterCount(value: string): number {

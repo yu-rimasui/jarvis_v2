@@ -392,6 +392,21 @@ export class SqliteExperimentRepository
     return row === undefined ? undefined : experimentFromRow(row);
   }
 
+  async findActiveByAnalysisId(
+    analysisId: EntityId,
+  ): Promise<Experiment | undefined> {
+    const row = this.database
+      .prepare(`
+        SELECT * FROM experiments
+        WHERE source_analysis_id = ?
+          AND status IN ('proposed', 'approved', 'in_progress')
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+      `)
+      .get(analysisId);
+    return row === undefined ? undefined : experimentFromRow(row);
+  }
+
   async list(): Promise<readonly Experiment[]> {
     return this.database
       .prepare(

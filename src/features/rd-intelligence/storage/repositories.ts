@@ -88,6 +88,9 @@ export interface ExperimentRepository {
     event: ExperimentEvent,
   ): Promise<boolean>;
   findById(id: EntityId): Promise<Experiment | undefined>;
+  findActiveByAnalysisId(
+    analysisId: EntityId,
+  ): Promise<Experiment | undefined>;
   list(): Promise<readonly Experiment[]>;
   listRuns(experimentId: EntityId): Promise<readonly ExperimentRun[]>;
   listEvents(experimentId: EntityId): Promise<readonly ExperimentEvent[]>;
@@ -129,6 +132,15 @@ export interface ProcessingRunRepository {
   list(limit: number): Promise<readonly ProcessingRun[]>;
 }
 
+export interface CollectorStateRepository {
+  findLastSuccessfulAt(sourceName: string): Promise<string | undefined>;
+  saveLastSuccessfulAt(
+    sourceName: string,
+    lastSuccessfulAt: string,
+    updatedAt: string,
+  ): Promise<void>;
+}
+
 export interface RepositorySet {
   readonly sourceItems: SourceItemRepository;
   readonly topicClusters: TopicClusterRepository;
@@ -137,4 +149,5 @@ export interface RepositorySet {
   readonly contentDrafts: ContentDraftRepository;
   readonly dailyDigests: DailyDigestRepository;
   readonly processingRuns: ProcessingRunRepository;
+  readonly collectorStates?: CollectorStateRepository;
 }

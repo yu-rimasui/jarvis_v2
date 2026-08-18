@@ -5,6 +5,7 @@ import {
   type ContentRenderer,
   unicodeCharacterCount,
 } from "../content/content-renderer.js";
+import { isValidXText, xWeightedCharacterCount } from "../content/x-character-count.js";
 import {
   matchesXEvidenceContext,
   XContentRenderer,
@@ -20,6 +21,8 @@ import type {
 } from "../domain/entities.js";
 import type { DraftStatus } from "../domain/enums.js";
 import type { Logger } from "../logging/logger.js";
+import type { XDraftProvider } from "../providers/x-draft-provider.js";
+import type { KnowledgeVault } from "../vault/knowledge-vault.js";
 import { safeErrorContext } from "../logging/logger.js";
 import type {
   AnalysisRepository,
@@ -69,6 +72,24 @@ export class DraftExperimentMismatchError extends Error {
   constructor() {
     super("The experiment belongs to a different analysis");
     this.name = "DraftExperimentMismatchError";
+  }
+}
+
+export class DraftExperimentRequiredError extends Error {
+  readonly code = "DRAFT_EXPERIMENT_REQUIRED";
+
+  constructor() {
+    super("A completed experiment is required for an X draft");
+    this.name = "DraftExperimentRequiredError";
+  }
+}
+
+export class DraftExperimentIncompleteError extends Error {
+  readonly code = "DRAFT_EXPERIMENT_INCOMPLETE";
+
+  constructor() {
+    super("The experiment and its publishable practice log must be completed");
+    this.name = "DraftExperimentIncompleteError";
   }
 }
 
@@ -142,6 +163,8 @@ export interface ContentDraftServiceDependencies {
   readonly processingRuns: ProcessingRunRepository;
   readonly logger: Logger;
   readonly xRenderer?: ContentRenderer<"x">;
+  readonly xDraftProvider?: XDraftProvider;
+  readonly vault?: KnowledgeVault;
   readonly id?: () => string;
   readonly now?: () => Date;
 }
@@ -183,6 +206,12 @@ export class ContentDraftService {
       const analysisId = parseAnalysisId(analysisIdValue);
       const experimentId =
         parseOptionalExperimentId(experimentIdValue);
+      const usesVaultWorkflow =
+        this.dependencies.xDraftProvider !== undefined &&
+        this.dependencies.vault !== undefined;
+      if (usesVaultWorkflow && experimentId === undefined) {
+        throw new DraftExperimentRequiredError();
+      }
       const analysis =
         await this.dependencies.analyses.findById(analysisId);
       if (analysis === undefined) throw new DraftAnalysisNotFoundError();
@@ -194,39 +223,94 @@ export class ContentDraftService {
         throw new DraftSourceItemNotFoundError();
       }
 
-      const experiment =
-        experimentId === undefined
-          ? undefined
-          : await this.dependencies.experiments.findById(experimentId);
+      const experiment = experimentId === undefined
+        ? undefined
+        : await this.dependencies.experiments.findById(experimentId);
       if (experimentId !== undefined && experiment === undefined) {
         throw new DraftExperimentNotFoundError();
       }
       if (
-        experiment !== undefined &&
-        experiment.sourceAnalysisId !== analysis.id
+        experiment !== undefined && experiment.sourceAnalysisId !== analysis.id
       ) {
         throw new DraftExperimentMismatchError();
       }
-      const learning =
-        experiment === undefined
-          ? undefined
-          : await this.dependencies.experiments.findLearning(
-              experiment.id,
-            );
+      const learning = experiment === undefined
+        ? undefined
+        : await this.dependencies.experiments.findLearning(experiment.id);
+      if (
+        usesVaultWorkflow &&
+        (experiment?.status !== "completed" ||
+          learning?.publishableFirstHandExperience?.trim() === undefined ||
+          learning.publishableFirstHandExperience.trim() === "")
+      ) {
+        throw new DraftExperimentIncompleteError();
+      }
       const renderContext = {
         analysis,
         sourceItem,
         ...(experiment === undefined ? {} : { experiment }),
         ...(learning === undefined ? {} : { learning }),
       };
-      const rendered = this.xRenderer.render(renderContext);
-      if (!matchesXEvidenceContext(renderContext, rendered)) {
+      let rendered = this.xRenderer.render(renderContext);
+      let providerId = this.xRenderer.providerId;
+      let modelId = this.xRenderer.modelId;
+      let promptVersion = this.xRenderer.promptVersion;
+      let practiceNote: string | undefined;
+      if (
+        this.dependencies.xDraftProvider !== undefined &&
+        this.dependencies.vault !== undefined &&
+        experiment !== undefined &&
+        learning !== undefined
+      ) {
+        const practice = await this.dependencies.vault.readPractice(experiment.id);
+        practiceNote = practice.note.relativePath;
+        let generated = await this.dependencies.xDraftProvider.generateXDraft({
+          sourceItem,
+          analysis,
+          experiment,
+          learning,
+          practice: practice.evidence,
+        });
+        if (!isValidXText(generated.text)) {
+          generated = await this.dependencies.xDraftProvider.generateXDraft({
+            sourceItem,
+            analysis,
+            experiment,
+            learning,
+            practice: practice.evidence,
+            shorten: true,
+          });
+        }
+        if (
+          !isValidXText(generated.text) ||
+          sourceItem.canonicalUrl === undefined ||
+          !generated.text.includes(sourceItem.canonicalUrl)
+        ) {
+          throw new ContentDraftEvidenceViolationError();
+        }
+        rendered = {
+          hook: "",
+          body: generated.text,
+          keyTakeaway: "",
+          sourceLinks: [sourceItem.canonicalUrl],
+          characterCount: xWeightedCharacterCount(generated.text),
+          evidenceScope: "completed_experiment",
+          provenance: [
+            { kind: "SOURCE", text: analysis.summary, sourceUrl: sourceItem.canonicalUrl },
+            { kind: "EXPERIMENT_RESULT", text: experiment.result ?? "" },
+            { kind: "EXPERIENCE", text: learning.publishableFirstHandExperience ?? "" },
+          ],
+        };
+        providerId = this.dependencies.xDraftProvider.providerId;
+        modelId = this.dependencies.xDraftProvider.modelId;
+        promptVersion = this.dependencies.xDraftProvider.promptVersion;
+      } else if (!matchesXEvidenceContext(renderContext, rendered)) {
         throw new ContentDraftEvidenceViolationError();
       }
-      const characterCount = unicodeCharacterCount(
-        composedDraftText(rendered),
-      );
-      if (characterCount > 280) {
+      const characterCount = usesVaultWorkflow
+        ? xWeightedCharacterCount(composedDraftText(rendered))
+        : unicodeCharacterCount(composedDraftText(rendered));
+      if (characterCount > 280 || (usesVaultWorkflow && !isValidXText(composedDraftText(rendered)))) {
         throw new ContentDraftTooLongError();
       }
 
@@ -235,9 +319,7 @@ export class ContentDraftService {
         id: this.id(),
         platform: "x",
         relatedAnalysisId: analysis.id,
-        ...(experiment === undefined
-          ? {}
-          : { relatedExperimentId: experiment.id }),
+        ...(experiment === undefined ? {} : { relatedExperimentId: experiment.id }),
         hook: rendered.hook,
         body: rendered.body,
         keyTakeaway: rendered.keyTakeaway,
@@ -246,9 +328,9 @@ export class ContentDraftService {
         status: "draft",
         evidenceScope: rendered.evidenceScope,
         provenance: rendered.provenance,
-        providerId: this.xRenderer.providerId,
-        modelId: this.xRenderer.modelId,
-        promptVersion: this.xRenderer.promptVersion,
+        providerId,
+        modelId,
+        promptVersion,
         generatedAt,
         updatedAt: generatedAt,
       };
@@ -259,6 +341,18 @@ export class ContentDraftService {
         createdAt: generatedAt,
       };
       await this.dependencies.drafts.create(draft, event);
+      if (this.dependencies.vault !== undefined && experiment !== undefined) {
+        const input = await this.dependencies.vault.findInputForSource(sourceItem.id);
+        const resolvedPractice = practiceNote ?? (await this.dependencies.vault.readPractice(experiment.id)).note.relativePath;
+        await this.dependencies.vault.saveDraft(
+          draft,
+          sourceItem.title,
+          sourceItem.id,
+          input.relativePath,
+          resolvedPractice,
+          composedDraftText(draft),
+        );
+      }
       return { draft, events: [event] };
     });
   }
@@ -274,10 +368,11 @@ export class ContentDraftService {
       if (!canEditDraft(current.status)) {
         throw new ContentDraftTransitionError();
       }
-      const characterCount = unicodeCharacterCount(
-        composedDraftText(input),
-      );
-      if (current.platform === "x" && characterCount > 280) {
+      const currentText = composedDraftText(input);
+      const characterCount = current.providerId === "ollama-local"
+        ? xWeightedCharacterCount(currentText)
+        : unicodeCharacterCount(currentText);
+      if (current.platform === "x" && (characterCount > 280 || (current.providerId === "ollama-local" && !isValidXText(currentText)))) {
         throw new ContentDraftTooLongError();
       }
 
@@ -371,6 +466,21 @@ export class ContentDraftService {
 
   async list(): Promise<readonly ContentDraft[]> {
     return this.dependencies.drafts.list();
+  }
+
+  async reload(draftIdValue: unknown): Promise<ContentDraft> {
+    if (this.dependencies.vault === undefined) {
+      throw new ContentDraftEvidenceViolationError();
+    }
+    const draftId = parseContentDraftId(draftIdValue);
+    const imported = await this.dependencies.vault.readDraftText(draftId);
+    const current = await this.requireDraft(draftId);
+    return this.edit(draftId, {
+      hook: "",
+      body: imported.text,
+      keyTakeaway: "",
+      sourceLinks: current.sourceLinks,
+    });
   }
 
   private async transition(
@@ -478,10 +588,18 @@ export class ContentDraftService {
       ...(experiment === undefined ? {} : { experiment }),
       ...(learning === undefined ? {} : { learning }),
     };
+    const text = composedDraftText(draft);
+    const validProviderDraft =
+      draft.providerId === "ollama-local" &&
+      experiment?.status === "completed" &&
+      learning?.publishableFirstHandExperience !== undefined &&
+      sourceItem.canonicalUrl !== undefined &&
+      draft.sourceLinks.includes(sourceItem.canonicalUrl) &&
+      text.includes(sourceItem.canonicalUrl);
     if (
-      !matchesXEvidenceContext(context, draft, true) ||
-      draft.characterCount !==
-        unicodeCharacterCount(composedDraftText(draft))
+      (!(validProviderDraft || matchesXEvidenceContext(context, draft, true))) ||
+      draft.characterCount !== (draft.providerId === "ollama-local" ? xWeightedCharacterCount(text) : unicodeCharacterCount(text)) ||
+      (draft.providerId === "ollama-local" && !isValidXText(text))
     ) {
       throw new ContentDraftEvidenceViolationError();
     }

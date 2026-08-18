@@ -5,8 +5,10 @@ import type {
 import {
   CATEGORIES,
   CLAIM_CLASSES,
+  TRIAL_DIFFICULTIES,
   type Category,
   type ClaimClass,
+  type TrialDifficulty,
 } from "../domain/enums.js";
 import {
   isRecord,
@@ -23,6 +25,13 @@ export interface ParsedAnalysis {
   readonly whyItMatters: string;
   readonly workUse: string;
   readonly suggestedFirstExperiment: string;
+  readonly trialDifficulty: TrialDifficulty;
+  readonly requiredEnvironment: readonly string[];
+  readonly hypothesis: string;
+  readonly expectedValue: string;
+  readonly estimatedEffort: string;
+  readonly successCriteria: string;
+  readonly verificationMethod: string;
   readonly relatedTechnologies: readonly string[];
   readonly relatedRepositories: readonly string[];
   readonly risksAndLimitations: readonly string[];
@@ -76,6 +85,19 @@ function claimClass(value: unknown, field: string): ClaimClass {
   }
 
   return value as ClaimClass;
+}
+
+function trialDifficulty(
+  value: unknown,
+  field: string,
+): TrialDifficulty {
+  if (
+    typeof value !== "string" ||
+    !TRIAL_DIFFICULTIES.includes(value as TrialDifficulty)
+  ) {
+    throw new ValidationError(field, "is not a supported trial difficulty");
+  }
+  return value as TrialDifficulty;
 }
 
 function stringArray(
@@ -220,6 +242,40 @@ export function parseAnalysis(value: unknown): ParsedAnalysis {
     suggestedFirstExperiment: requiredString(
       value["suggestedFirstExperiment"],
       "analysis.suggestedFirstExperiment",
+      4_000,
+    ),
+    trialDifficulty: trialDifficulty(
+      value["trialDifficulty"],
+      "analysis.trialDifficulty",
+    ),
+    requiredEnvironment: stringArray(
+      value["requiredEnvironment"],
+      "analysis.requiredEnvironment",
+      20,
+    ),
+    hypothesis: requiredString(
+      value["hypothesis"],
+      "analysis.hypothesis",
+      4_000,
+    ),
+    expectedValue: requiredString(
+      value["expectedValue"],
+      "analysis.expectedValue",
+      4_000,
+    ),
+    estimatedEffort: requiredString(
+      value["estimatedEffort"],
+      "analysis.estimatedEffort",
+      512,
+    ),
+    successCriteria: requiredString(
+      value["successCriteria"],
+      "analysis.successCriteria",
+      4_000,
+    ),
+    verificationMethod: requiredString(
+      value["verificationMethod"],
+      "analysis.verificationMethod",
       4_000,
     ),
     relatedTechnologies: stringArray(

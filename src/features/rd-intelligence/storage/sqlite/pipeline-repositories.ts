@@ -16,6 +16,7 @@ import {
   type ProcessingOperation,
   type ProcessingStatus,
   type SourceType,
+  type TrialDifficulty,
 } from "../../domain/enums.js";
 import type {
   AnalysisRepository,
@@ -210,6 +211,19 @@ function analysisFromRow(row: SqlRow): Analysis {
       row,
       "suggested_first_experiment",
     ),
+    trialDifficulty: stringValue(
+      row,
+      "trial_difficulty",
+    ) as TrialDifficulty,
+    requiredEnvironment: stringArrayValue(
+      row,
+      "required_environment_json",
+    ),
+    hypothesis: stringValue(row, "hypothesis"),
+    expectedValue: stringValue(row, "expected_value"),
+    estimatedEffort: stringValue(row, "estimated_effort"),
+    successCriteria: stringValue(row, "success_criteria"),
+    verificationMethod: stringValue(row, "verification_method"),
     relatedTechnologies: stringArrayValue(
       row,
       "related_technologies_json",
@@ -495,6 +509,13 @@ const ANALYSIS_SELECT = `
     analyses.why_it_matters,
     analyses.work_use,
     analyses.suggested_first_experiment,
+    analyses.trial_difficulty,
+    analyses.required_environment_json,
+    analyses.hypothesis,
+    analyses.expected_value,
+    analyses.estimated_effort,
+    analyses.success_criteria,
+    analyses.verification_method,
     analyses.related_technologies_json,
     analyses.related_repositories_json,
     analyses.risks_and_limitations_json,
@@ -631,10 +652,13 @@ export class SqliteAnalysisRepository implements AnalysisRepository {
             id, source_item_id, summary, primary_category,
             secondary_categories_json, confidence, confidence_reason,
             why_it_matters, work_use, suggested_first_experiment,
+            trial_difficulty, required_environment_json, hypothesis,
+            expected_value, estimated_effort, success_criteria,
+            verification_method,
             related_technologies_json, related_repositories_json,
             risks_and_limitations_json, claims_json, provider_id, model_id,
             prompt_version, schema_version, analyzed_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           analysis.id,
@@ -647,6 +671,13 @@ export class SqliteAnalysisRepository implements AnalysisRepository {
           analysis.whyItMatters,
           analysis.workUse,
           analysis.suggestedFirstExperiment,
+          analysis.trialDifficulty,
+          JSON.stringify(analysis.requiredEnvironment),
+          analysis.hypothesis,
+          analysis.expectedValue,
+          analysis.estimatedEffort,
+          analysis.successCriteria,
+          analysis.verificationMethod,
           JSON.stringify(analysis.relatedTechnologies),
           JSON.stringify(analysis.relatedRepositories),
           JSON.stringify(analysis.risksAndLimitations),
