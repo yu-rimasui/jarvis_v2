@@ -1,9 +1,39 @@
+import { Route, Routes } from "react-router-dom";
+import { DashboardPage } from "../features/dashboard/DashboardPage.js";
+import { featureDefinitions } from "../features/dashboard/feature-definitions.js";
+import { AppShell } from "./AppShell.js";
+import { FeaturePlaceholderPage } from "./FeaturePlaceholderPage.js";
+import { NotFoundPage } from "./NotFoundPage.js";
+
 export function App() {
   return (
-    <main className="foundation-screen">
-      <p className="foundation-kicker">JARVIS / LOCAL-FIRST</p>
-      <h1>Personal Command Center</h1>
-      <p>React UI foundation is ready.</p>
-    </main>
+    <Routes>
+      <Route element={<AppShell />}>
+        <Route index element={<DashboardPage />} />
+        {featureDefinitions
+          .filter((feature) => feature.status !== "active")
+          .map((feature) => (
+            <Route
+              key={feature.id}
+              path={feature.path.slice(1)}
+              element={<FeaturePlaceholderPage feature={feature} />}
+            />
+          ))}
+        <Route
+          path="rd-intelligence"
+          element={
+            <FeaturePlaceholderPage
+              feature={
+                featureDefinitions.find(
+                  (feature) => feature.id === "rd-intelligence",
+                ) ?? featureDefinitions[0]!
+              }
+              activePlaceholder
+            />
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }
