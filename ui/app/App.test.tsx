@@ -17,6 +17,16 @@ beforeEach(() => {
     vi.fn((input: string | URL | Request) => {
       const path = String(input);
       if (path === "/api/health") return Promise.resolve(response({ status: "ok" }));
+      if (path === "/api/experiments") {
+        return Promise.resolve(
+          response({ items: [{ status: "proposed" }, { status: "completed" }] }),
+        );
+      }
+      if (path === "/api/x-drafts") {
+        return Promise.resolve(
+          response({ items: [{ status: "needs_review" }, { status: "approved" }] }),
+        );
+      }
       return Promise.resolve(response({ items: [] }));
     }),
   );
@@ -41,6 +51,9 @@ describe("Jarvis app routes", () => {
     expect(screen.getAllByRole("link", { name: /R&D Intelligence/u })).toHaveLength(
       2,
     );
+    expect(
+      await screen.findByText("drafts need review · 1 experiments open"),
+    ).toBeInTheDocument();
     await user.click(
       screen.getAllByRole("link", { name: /R&D Intelligence/u })[1]!,
     );

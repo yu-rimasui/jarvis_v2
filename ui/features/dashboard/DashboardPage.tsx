@@ -1,4 +1,9 @@
+import { useEffect, useState } from "react";
 import { FeatureCard } from "./FeatureCard.js";
+import {
+  fetchDashboardSummary,
+  type DashboardSummary,
+} from "./dashboard-summary.js";
 import { featureDefinitions } from "./feature-definitions.js";
 
 const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
@@ -7,6 +12,24 @@ const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
 });
 
 export function DashboardPage() {
+  const [summary, setSummary] = useState<DashboardSummary | "offline" | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let active = true;
+    void fetchDashboardSummary()
+      .then((value) => {
+        if (active) setSummary(value);
+      })
+      .catch(() => {
+        if (active) setSummary("offline");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section className="dashboard-page" aria-labelledby="dashboard-title">
       <header className="page-heading dashboard-heading">
@@ -52,9 +75,27 @@ export function DashboardPage() {
       </div>
 
       <div className="feature-grid">
-        {featureDefinitions.map((feature) => (
-          <FeatureCard key={feature.id} feature={feature} />
-        ))}
+        {featureDefinitions.map((feature) => {
+          const dashboardFeature =
+            feature.id !== "rd-intelligence"
+              ? feature
+              : {
+                  ...feature,
+                  metric:
+                    summary === "offline"
+                      ? "OFF"
+                      : summary === null
+                        ? "…"
+                        : String(summary.reviewDrafts),
+                  metricLabel:
+                    summary === "offline"
+                      ? "local API unavailable"
+                      : summary === null
+                        ? "loading local state"
+                        : `drafts need review · ${summary.openExperiments} experiments open`,
+                };
+          return <FeatureCard key={feature.id} feature={dashboardFeature} />;
+        })}
       </div>
     </section>
   );

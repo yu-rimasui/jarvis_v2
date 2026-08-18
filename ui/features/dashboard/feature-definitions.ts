@@ -21,8 +21,8 @@ export const featureDefinitions: readonly FeatureDefinition[] = [
       "根拠を収集・分析し、実験とレビュー済みのX下書きにつなげます。",
     path: "/rd-intelligence",
     status: "active",
-    metric: "LOCAL",
-    metricLabel: "human review required",
+    metric: "…",
+    metricLabel: "loading local state",
     glyph: "RD",
   },
   {
