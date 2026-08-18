@@ -6,9 +6,10 @@ Jarvis v2は、ゆーり自身の記憶・能力・判断傾向・人格を少�
 
 ## 現在の状態
 
-現在は、既存のNode.js／SQLiteによるR&D Intelligence MVPと、将来のPython／PostgreSQL／Vector DB構成へ移行するためのCompose設定基盤を併存させています。
+現在は、Reactによるローカルダッシュボード、Node.js／SQLiteによるR&D Intelligence MVP、将来のPython／PostgreSQL／Vector DB構成へ移行するためのCompose設定基盤を併存させています。
 
-- R&D Intelligence MVP: `npm test`で検証できる既存のローカル縦切り
+- Browser UI: `ui/`に配置したReact／Vite／React Routerのダッシュボード
+- R&D Intelligence MVP: ダッシュボードから操作でき、`npm test`で検証できるローカル縦切り
 - Python foundation: `pyproject.toml`、`src/jarvis/`、`Dockerfile`
 - Local infrastructure: `compose.yaml`（app、PostgreSQL、Qdrant）
 
@@ -17,6 +18,27 @@ Python側は現在ヘルスチェック用の最小アプリのみです。既�
 前身プロジェクトの調査結果は[`docs/JARVIS_V1_HANDOFF.md`](docs/JARVIS_V1_HANDOFF.md)を参照してください。Codexを使った開発ルールは[`CODEX.md`](CODEX.md)に定義しています。
 
 構成の境界と移行方針は[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)を参照してください。
+
+## ローカルUI
+
+Node.js 22系を使用します。初回は依存関係を導入し、合成fixtureを入れたローカルDBを用意してからAPIを起動します。
+
+```bash
+npm ci
+npm run db:init
+npm run pipeline:fixture
+npm run api:local
+```
+
+ブラウザで `http://127.0.0.1:4317/` を開くとダッシュボード、`/rd-intelligence` を開くとR&D Intelligenceを表示します。`api:local`はUIをビルドし、同一のloopback originから明示allowlistで配信します。
+
+UIだけを開発する場合は、別ターミナルでローカルAPIを起動したまま次を実行します。
+
+```bash
+npm run dev:ui
+```
+
+Viteは `http://127.0.0.1:5173/` で起動し、`/api`をポート4317へ転送します。
 
 ## Python／Compose foundation
 
@@ -131,7 +153,7 @@ R&D BrainのKnowledge Baseは既定では`~/.codex/rd-brain`にあり、この�
 
 ## Git運用
 
-安定版は`main`で管理し、開発は目的別ブランチで行います。
+安定版と現在の主要機能開発は`main`で管理します。必要になった場合のみ、分離価値のある作業を目的別ブランチへ切り出します。
 
 | 種別 | ブランチ | 例 |
 | --- | --- | --- |

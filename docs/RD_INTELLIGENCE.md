@@ -1,6 +1,6 @@
 # R&D Intelligence MVP 技術文書
 
-この文書は、現在の `feat/sns` ブランチに存在するR&D Intelligence MVPの実装と運用境界を説明します。将来の構想を完成済みの機能として扱わないため、未実装項目を明示しています。
+この文書は、`main`で管理するR&D Intelligence MVPの実装と運用境界を説明します。将来の構想を完成済みの機能として扱わないため、未実装項目を明示しています。
 
 ## 1. 目的とユーザーフロー
 
@@ -77,10 +77,14 @@ src/
       storage/        repository interfaceとSQLite実装
       validation/     外部/LLM/API入力のruntime validation
   jarvis/             Python application foundation
+ui/
+  app/                React Router、App Shell、共通スタイル
+  features/
+    dashboard/        ルートのFeatureカード型ダッシュボード
+    rd-intelligence/  R&D画面、API client、Feature固有スタイル
 migrations/     番号付きSQLite migration
 fixtures/       個人データを含まない合成source item
 tests/          unit、integration、local API、closed-loop安全性
-mocks/dashboard/  既存Jarvis dashboardモックとR&D導線の静的asset
 .github/workflows/ci.yml  PR/manual-only CI
 ```
 
@@ -206,7 +210,7 @@ APIのJSON body上限は1 MiB、request/header/socketに有限timeoutがあり�
 
 ## 7. UI
 
-既存のJarvis暗色/cyan UIへ、次のタブを追加しています。
+ReactのJarvisダッシュボードから `/rd-intelligence` へ遷移し、次のタブを操作できます。
 
 - Inbox
 - Ranked insights / detail
@@ -214,7 +218,9 @@ APIのJSON body上限は1 MiB、request/header/socketに有限timeoutがあり�
 - X draft queue / edit / copy / human review
 - Processing history
 
-UIはvanilla HTML/CSS/JSで、外部assetやブラウザ永続化を使用しません。`fetch`は同一originの相対 `/api/...` だけです。初期表示は通信せず、明示的な更新・取込・状態変更でのみAPIへアクセスします。
+UIはReact／Vite／React Routerで、外部assetやブラウザ永続化を使用しません。`fetch`は同一originの相対 `/api/...` だけです。初期表示時に保存済みのローカルデータを読み、更新・取込・状態変更後に再読込します。ダッシュボードのR&Dカードには、レビュー待ち下書き数と未完了実験数を表示します。APIへ接続できない場合はオフライン状態を明示します。
+
+画面にはpublish操作を置かず、X下書きは編集、コピー、レビュー、承認までに限定しています。DigestはHistoryタブから手動生成できます。定期実行や自動投稿はありません。
 
 ## 8. Security, privacy, and cost
 
@@ -241,7 +247,6 @@ UIはvanilla HTML/CSS/JSで、外部assetやブラウザ永続化を使用しま
 - Zenn / Qiita RSS collectorを、取得頻度・robots/利用規約・失敗時の再試行とともに実装する。
 - 実LLM providerを、schema validation、cost ceiling、prompt/model version、個人データ送信の同意とともに追加する。
 - topic clusteringを、決定的ルールから必要最小限の意味クラスタリングへ評価する。
-- DigestのUI手動生成導線を追加する（APIは実装済み）。
 - Instagram向けrendererを追加する（API投稿は実装しない）。
 - データの削除/exportとretention UIを設計する。
 
@@ -257,4 +262,4 @@ UIはvanilla HTML/CSS/JSで、外部assetやブラウザ永続化を使用しま
 - migration、logging、閉ループ外部通信境界: `tests/foundation.test.ts`, `tests/closed-loop.test.ts`
 - UI主要フロー、keyboard、responsive、console: `ui-verify`ステージのローカルブラウザ検証
 
-最終的な公開・commit・pushはリポジトリ所有者が判断します。
+最終的な公開・pushはリポジトリ所有者が判断します。

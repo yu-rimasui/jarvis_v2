@@ -17,6 +17,8 @@
 data/
 memory/
 private/
+models/
+ml/datasets/private/
 
 # Python
 __pycache__/
