@@ -21,6 +21,13 @@ export interface AnalysisView {
   readonly primaryCategory: string;
   readonly risksAndLimitations: readonly string[];
   readonly suggestedFirstExperiment: string;
+  readonly trialDifficulty: string;
+  readonly requiredEnvironment: readonly string[];
+  readonly hypothesis: string;
+  readonly expectedValue: string;
+  readonly estimatedEffort: string;
+  readonly successCriteria: string;
+  readonly verificationMethod: string;
   readonly summary: string;
   readonly whyItMatters: string;
   readonly workUse: string;

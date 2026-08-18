@@ -268,6 +268,38 @@ export function RdIntelligencePage() {
     if (result !== undefined) form.reset();
   }
 
+  async function collectRss() {
+    await mutate("RSS最新情報の取得", () =>
+      localApi("/api/collections/rss", jsonRequest("POST", {})),
+    );
+  }
+
+  async function importX(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const publishedAt = value(data, "publishedAt");
+    const result = await mutate("X投稿の取込と分析", () =>
+      localApi("/api/inbox/x-import", jsonRequest("POST", {
+        canonicalUrl: value(data, "canonicalUrl"),
+        content: value(data, "content"),
+        author: value(data, "author"),
+        title: value(data, "title") || "X投稿",
+        ...(publishedAt ? { publishedAt } : {}),
+      })),
+    );
+    if (result !== undefined) form.reset();
+  }
+
+  async function startPractice() {
+    const id = insightDetail?.analysis.id;
+    if (id === undefined) return;
+    const result = await mutate("Obsidian実践ノートの作成", () =>
+      localApi(`/api/insights/${encodeURIComponent(id)}/practice-note`, jsonRequest("POST", {})),
+    );
+    if (result !== undefined) selectView("experiments");
+  }
+
   async function proposeExperiment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (insightDetail === undefined) return;
@@ -313,6 +345,15 @@ export function RdIntelligencePage() {
     if (id === undefined) return;
     const result = await mutate(`実験を${action === "approve" ? "承認" : "開始"}`, () =>
       localApi(`/api/experiments/${encodeURIComponent(id)}/${action}`, jsonRequest("POST", {})),
+    );
+    if (result !== undefined) await loadExperiment(id);
+  }
+
+  async function importPracticeLog() {
+    const id = experimentDetail?.experiment.id;
+    if (id === undefined) return;
+    const result = await mutate("Obsidian実践ログの読込", () =>
+      localApi(`/api/experiments/${encodeURIComponent(id)}/import-log`, jsonRequest("POST", {})),
     );
     if (result !== undefined) await loadExperiment(id);
   }
@@ -384,6 +425,15 @@ export function RdIntelligencePage() {
     if (result !== undefined) await loadDraft(id);
   }
 
+  async function reloadDraft() {
+    const id = draftDetail?.draft.id;
+    if (id === undefined) return;
+    const result = await mutate("Obsidian下書きの再読込", () =>
+      localApi(`/api/x-drafts/${encodeURIComponent(id)}/reload`, jsonRequest("POST", {})),
+    );
+    if (result !== undefined) await loadDraft(id);
+  }
+
   async function copyDraft() {
     const draft = draftDetail?.draft;
     if (draft === undefined) return;
@@ -409,14 +459,14 @@ export function RdIntelligencePage() {
           <h1 id="rd-page-title">R&amp;D Intelligence</h1>
           <p>根拠から小さな実験とレビュー済み下書きを作る、ローカル専用の作業面です。</p>
         </div>
-        <button
-          className="rd-primary-button"
-          type="button"
-          disabled={busy || isStaticPreview}
-          onClick={() => void refresh()}
-        >
-          {isStaticPreview ? "プレビュー専用" : busy ? "更新中…" : "ローカルデータを更新"}
-        </button>
+        <div className="rd-form-actions">
+          <button type="button" disabled={busy || isStaticPreview} onClick={() => void refresh()}>
+            {isStaticPreview ? "プレビュー専用" : "表示を更新"}
+          </button>
+          <button className="rd-primary-button" type="button" disabled={busy || isStaticPreview} onClick={() => void collectRss()}>
+            {busy ? "処理中…" : "最新情報を取得"}
+          </button>
+        </div>
       </header>
 
       <div className={`rd-status-message rd-status-${status.tone}`} role="status" aria-live="polite">
@@ -459,7 +509,7 @@ export function RdIntelligencePage() {
         ))}
       </div>
 
-      {view === "inbox" ? <InboxPanel items={snapshot.inbox} busy={busy} onImport={importInbox} /> : null}
+      {view === "inbox" ? <InboxPanel items={snapshot.inbox} busy={busy} onImport={importInbox} onImportX={importX} /> : null}
       {view === "insights" ? (
         <InsightsPanel
           insights={snapshot.insights}
@@ -470,6 +520,7 @@ export function RdIntelligencePage() {
           onSelect={(id) => void loadInsight(id)}
           onPropose={proposeExperiment}
           onGenerateDraft={generateDraft}
+          onStartPractice={() => void startPractice()}
         />
       ) : null}
       {view === "experiments" ? (
@@ -482,6 +533,7 @@ export function RdIntelligencePage() {
           onAction={(action) => void experimentAction(action)}
           onDecision={decideExperiment}
           onComplete={completeExperiment}
+          onImportLog={() => void importPracticeLog()}
         />
       ) : null}
       {view === "drafts" ? (
@@ -494,6 +546,7 @@ export function RdIntelligencePage() {
           onEdit={editDraft}
           onAction={(action) => void draftAction(action)}
           onCopy={() => void copyDraft()}
+          onReload={() => void reloadDraft()}
         />
       ) : null}
       {view === "history" ? (
@@ -528,7 +581,7 @@ function PanelCard({ children, eyebrow, title }: { readonly children: React.Reac
   );
 }
 
-function InboxPanel({ items, busy, onImport }: { readonly items: readonly SourceItemView[]; readonly busy: boolean; readonly onImport: (event: FormEvent<HTMLFormElement>) => void }) {
+function InboxPanel({ items, busy, onImport, onImportX }: { readonly items: readonly SourceItemView[]; readonly busy: boolean; readonly onImport: (event: FormEvent<HTMLFormElement>) => void; readonly onImportX: (event: FormEvent<HTMLFormElement>) => void }) {
   const sample = JSON.stringify({
     items: [{
       sourceType: "manual",
@@ -549,7 +602,17 @@ function InboxPanel({ items, busy, onImport }: { readonly items: readonly Source
           ))}
         </div>
       </PanelCard>
-      <PanelCard eyebrow="EXPLICIT ONLY" title="Manual JSON import">
+      <PanelCard eyebrow="MANUAL X" title="X投稿を取り込む">
+        <p className="rd-help">URLと本文は手動入力です。Xへの投稿や自動取得は行いません。</p>
+        <form className="rd-form" onSubmit={onImportX}>
+          <label>投稿URL<input name="canonicalUrl" type="url" required placeholder="https://x.com/.../status/..." /></label>
+          <label>投稿者<input name="author" required /></label>
+          <label>タイトル（任意）<input name="title" /></label>
+          <label>投稿本文<textarea name="content" required rows={5} /></label>
+          <label>投稿日時（任意）<input name="publishedAt" type="datetime-local" /></label>
+          <button className="rd-primary-button" type="submit" disabled={busy}>X投稿を取り込む</button>
+        </form>
+        <details><summary>開発用JSON取込</summary>
         <p className="rd-help">入力は「JSONを取り込む」を押すまで保存されません。取込後はローカル分析を実行します。</p>
         <form className="rd-form" onSubmit={onImport}>
           <label>取込JSON<textarea name="json" rows={12} required spellCheck={false} value={json} onChange={(event) => setJson(event.target.value)} placeholder='{"items": […]}' /></label>
@@ -558,12 +621,13 @@ function InboxPanel({ items, busy, onImport }: { readonly items: readonly Source
             <button className="rd-primary-button" type="submit" disabled={busy}>JSONを取り込む</button>
           </div>
         </form>
+        </details>
       </PanelCard>
     </Panel>
   );
 }
 
-function InsightsPanel({ insights, experiments, detail, selectedId, busy, onSelect, onPropose, onGenerateDraft }: {
+function InsightsPanel({ insights, experiments, detail, selectedId, busy, onSelect, onPropose, onGenerateDraft, onStartPractice }: {
   readonly insights: readonly RankedInsightView[];
   readonly experiments: readonly ExperimentView[];
   readonly detail: InsightDetailView | undefined;
@@ -572,6 +636,7 @@ function InsightsPanel({ insights, experiments, detail, selectedId, busy, onSele
   readonly onSelect: (id: string) => void;
   readonly onPropose: (event: FormEvent<HTMLFormElement>) => void;
   readonly onGenerateDraft: (event: FormEvent<HTMLFormElement>) => void;
+  readonly onStartPractice: () => void;
 }) {
   return (
     <Panel id="rd-panel-insights" label="Ranked insights">
@@ -592,9 +657,10 @@ function InsightsPanel({ insights, experiments, detail, selectedId, busy, onSele
               <DetailField label="CONFIDENCE" value={`${detail.analysis.confidence} — ${detail.analysis.confidenceReason}`} />
             </div>
             <section className="rd-evidence-section"><h3>Evidence claims</h3><ul>{detail.analysis.claims.map((claim, index) => <li key={`${claim.claimClass}-${index}`}>{claim.claimClass}: {claim.text}</li>)}</ul></section>
+            <button className="rd-primary-button" type="button" disabled={busy} onClick={onStartPractice}>実践開始（Obsidianノートを作成）</button>
             <ExperimentProposalForm key={detail.analysis.id} detail={detail} busy={busy} onSubmit={onPropose} />
             <form className="rd-inline-form" onSubmit={onGenerateDraft}>
-              <label>関連する完了済み実験<select name="experimentId"><option value="">なし（ソース根拠のみ）</option>{experiments.filter((experiment) => experiment.sourceAnalysisId === detail.analysis.id && experiment.status === "completed").map((experiment) => <option key={experiment.id} value={experiment.id}>{experiment.title}</option>)}</select></label>
+              <label>関連する完了済み実験<select name="experimentId" required><option value="">選択してください</option>{experiments.filter((experiment) => experiment.sourceAnalysisId === detail.analysis.id && experiment.status === "completed").map((experiment) => <option key={experiment.id} value={experiment.id}>{experiment.title}</option>)}</select></label>
               <button type="submit" disabled={busy}>X下書きを生成</button>
               <small>コピー用・人間レビュー必須。自動投稿は行いません。</small>
             </form>
@@ -623,7 +689,7 @@ function ExperimentProposalForm({ detail, busy, onSubmit }: { readonly detail: I
   );
 }
 
-function ExperimentsPanel({ experiments, detail, selectedId, busy, onSelect, onAction, onDecision, onComplete }: {
+function ExperimentsPanel({ experiments, detail, selectedId, busy, onSelect, onAction, onDecision, onComplete, onImportLog }: {
   readonly experiments: readonly ExperimentView[];
   readonly detail: ExperimentDetailView | undefined;
   readonly selectedId: string;
@@ -632,6 +698,7 @@ function ExperimentsPanel({ experiments, detail, selectedId, busy, onSelect, onA
   readonly onAction: (action: "approve" | "start") => void;
   readonly onDecision: (event: FormEvent<HTMLFormElement>) => void;
   readonly onComplete: (event: FormEvent<HTMLFormElement>) => void;
+  readonly onImportLog: () => void;
 }) {
   const experiment = detail?.experiment;
   const runs = detail?.runs ?? [];
@@ -652,7 +719,7 @@ function ExperimentsPanel({ experiments, detail, selectedId, busy, onSelect, onA
             <EventHistory events={events} title="State history" />
             <div className="rd-form-actions">{["proposed", "blocked"].includes(experiment.status) ? <button type="button" disabled={busy} onClick={() => onAction("approve")}>承認する</button> : null}{experiment.status === "approved" ? <button className="rd-primary-button" type="button" disabled={busy} onClick={() => onAction("start")}>開始する</button> : null}</div>
             {["proposed", "approved", "in_progress"].includes(experiment.status) ? <form className="rd-inline-form" onSubmit={onDecision}><label>理由を記録して状態変更<div className="rd-form-two"><select name="action"><option value="block">ブロックする</option><option value="reject">却下する</option></select><input name="reason" required maxLength={4000} placeholder="理由" /></div></label><button type="submit" disabled={busy}>理由を記録</button></form> : null}
-            {experiment.status === "in_progress" ? <CompletionForm busy={busy} onSubmit={onComplete} /> : null}
+            {experiment.status === "in_progress" ? <div className="rd-detail-stack"><button className="rd-primary-button" type="button" disabled={busy} onClick={onImportLog}>実践ログを読み込んで完了</button><details><summary>開発用: 画面から直接完了</summary><CompletionForm busy={busy} onSubmit={onComplete} /></details></div> : null}
           </div>
         )}
       </PanelCard>
@@ -664,7 +731,7 @@ function CompletionForm({ busy, onSubmit }: { readonly busy: boolean; readonly o
   return <form className="rd-form rd-nested-form" onSubmit={onSubmit}><h3>結果を記録して完了</h3><label>結果<textarea name="result" required /></label><label>検証根拠<textarea name="verificationEvidence" required /></label><label>学び<textarea name="learned" required /></label><label>次の判断<textarea name="nextDecision" required /></label><label>仮説への結論<select name="hypothesisSupport"><option value="supported">支持された</option><option value="partially_supported">部分的に支持された</option><option value="not_supported">支持されなかった</option><option value="inconclusive">結論保留</option></select></label><label>再利用できる知識<textarea name="reusableKnowledge" required /></label><label>次の実験（任意）<textarea name="nextExperiment" /></label><label>公開可能な一次体験（実施済みの場合だけ・任意）<textarea name="publishableFirstHandExperience" /></label><button className="rd-primary-button" type="submit" disabled={busy}>結果を記録する</button></form>;
 }
 
-function DraftsPanel({ drafts, detail, selectedId, busy, onSelect, onEdit, onAction, onCopy }: {
+function DraftsPanel({ drafts, detail, selectedId, busy, onSelect, onEdit, onAction, onCopy, onReload }: {
   readonly drafts: readonly DraftView[];
   readonly detail: DraftDetailView | undefined;
   readonly selectedId: string;
@@ -673,6 +740,7 @@ function DraftsPanel({ drafts, detail, selectedId, busy, onSelect, onEdit, onAct
   readonly onEdit: (event: FormEvent<HTMLFormElement>) => void;
   readonly onAction: (action: "approve" | "review") => void;
   readonly onCopy: () => void;
+  readonly onReload: () => void;
 }) {
   const draft = detail?.draft;
   const events = detail?.events ?? [];
@@ -681,7 +749,7 @@ function DraftsPanel({ drafts, detail, selectedId, busy, onSelect, onEdit, onAct
       <PanelCard eyebrow={`${drafts.length} ITEMS`} title="X draft queue"><div className="rd-queue">{drafts.length === 0 ? <EmptyState>生成済みの下書きはありません。</EmptyState> : drafts.map((item) => <QueueButton key={item.id} title={item.hook} meta={item.evidenceScope} badge={item.status} selected={selectedId === item.id} onClick={() => onSelect(item.id)} />)}</div></PanelCard>
       <PanelCard eyebrow={draft?.status.toUpperCase() ?? "SELECT ONE"} title="X draft / human review">
         <p className="rd-review-note">この画面に投稿・公開操作はありません。コピー後も人間の判断が必要です。</p>
-        {draft === undefined ? <EmptyState>下書きを選択すると、根拠とレビュー履歴を確認できます。</EmptyState> : <div className="rd-detail-stack"><div className="rd-detail-grid"><DetailField label="EVIDENCE SCOPE" value={draft.evidenceScope} /><DetailField label="CHARACTERS" value={String(draft.characterCount)} /><DetailField label="RELATED INSIGHT" value={draft.relatedAnalysisId} /><DetailField label="RELATED EXPERIMENT" value={draft.relatedExperimentId ?? "—"} /></div><section className="rd-evidence-section"><h3>Evidence provenance</h3><ul>{draft.provenance.map((evidence, index) => <li key={`${evidence.kind}-${index}`}>{evidence.kind}: {evidence.text}</li>)}</ul></section><EventHistory events={events} title="Review history" /><form key={draft.id} className="rd-form rd-nested-form" onSubmit={onEdit}><label>Hook<textarea name="hook" required defaultValue={draft.hook} /></label><label>Body<textarea name="body" required defaultValue={draft.body} /></label><label>Key takeaway<textarea name="keyTakeaway" required defaultValue={draft.keyTakeaway} /></label><label>Source links<textarea name="sourceLinks" defaultValue={draft.sourceLinks.join("\n")} /></label><div className="rd-form-actions"><button type="submit" disabled={busy || draft.status === "published"}>変更を保存</button><button type="button" onClick={onCopy}>コピー</button>{draft.status === "draft" ? <button className="rd-primary-button" type="button" disabled={busy} onClick={() => onAction("review")}>レビューへ送る</button> : null}{draft.status === "needs_review" ? <button className="rd-primary-button" type="button" disabled={busy} onClick={() => onAction("approve")}>人間レビューを承認</button> : null}</div></form></div>}
+        {draft === undefined ? <EmptyState>下書きを選択すると、根拠とレビュー履歴を確認できます。</EmptyState> : <div className="rd-detail-stack"><div className="rd-detail-grid"><DetailField label="EVIDENCE SCOPE" value={draft.evidenceScope} /><DetailField label="X WEIGHTED LENGTH" value={String(draft.characterCount)} /><DetailField label="RELATED INSIGHT" value={draft.relatedAnalysisId} /><DetailField label="RELATED EXPERIMENT" value={draft.relatedExperimentId ?? "—"} /></div><section className="rd-evidence-section"><h3>Evidence provenance</h3><ul>{draft.provenance.map((evidence, index) => <li key={`${evidence.kind}-${index}`}>{evidence.kind}: {evidence.text}</li>)}</ul></section><EventHistory events={events} title="Review history" /><form key={draft.id} className="rd-form rd-nested-form" onSubmit={onEdit}><label>Hook<textarea name="hook" defaultValue={draft.hook} /></label><label>Body<textarea name="body" required defaultValue={draft.body} /></label><label>Key takeaway<textarea name="keyTakeaway" defaultValue={draft.keyTakeaway} /></label><label>Source links<textarea name="sourceLinks" defaultValue={draft.sourceLinks.join("\n")} /></label><div className="rd-form-actions"><button type="button" disabled={busy} onClick={onReload}>Obsidianから再読込</button><button type="submit" disabled={busy || draft.status === "published"}>変更を保存</button><button type="button" onClick={onCopy}>コピー</button>{draft.status === "draft" ? <button className="rd-primary-button" type="button" disabled={busy} onClick={() => onAction("review")}>レビューへ送る</button> : null}{draft.status === "needs_review" ? <button className="rd-primary-button" type="button" disabled={busy} onClick={() => onAction("approve")}>人間レビューを承認</button> : null}</div></form></div>}
       </PanelCard>
     </Panel>
   );
