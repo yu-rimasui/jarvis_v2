@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { isStaticPreview } from "../shared/runtime.js";
 
 const navigation = [
   { label: "Overview", path: "/", end: true },
@@ -45,8 +46,10 @@ export function AppShell() {
         <div className="sidebar-status" aria-label="ローカルシステム状態">
           <span className="status-orb" aria-hidden="true" />
           <span>
-            <strong>Local system</strong>
-            <small>External posting off</small>
+            <strong>{isStaticPreview ? "UI preview" : "Local system"}</strong>
+            <small>
+              {isStaticPreview ? "Local API not connected" : "External posting off"}
+            </small>
           </span>
         </div>
       </aside>
@@ -57,9 +60,12 @@ export function AppShell() {
             <p>PERSONAL INTELLIGENCE SYSTEM</p>
             <strong>Control Center</strong>
           </div>
-          <div className="header-state">
+          <div
+            className={`header-state${isStaticPreview ? " is-preview" : ""}`}
+            aria-label={isStaticPreview ? "静的UIプレビュー" : "ローカル接続中"}
+          >
             <span className="live-indicator" aria-hidden="true" />
-            <span>LOCAL / ONLINE</span>
+            <span>{isStaticPreview ? "STATIC / PREVIEW" : "LOCAL / ONLINE"}</span>
           </div>
         </header>
         <main id="main-content" className="app-content" tabIndex={-1}>

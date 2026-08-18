@@ -40,6 +40,10 @@ npm run dev:ui
 
 Viteは `http://127.0.0.1:5173/` で起動し、`/api`をポート4317へ転送します。
 
+### GitHub Pages UI preview
+
+`main`へのpushでGitHub Pagesへ静的UIプレビューをデプロイします。公開URLは `https://yu-rimasui.github.io/jarvis_v2/` です。PagesではNode.js／SQLiteのローカルAPIを動かさず、データ取得・取込・状態変更を行いません。実データを含む操作確認はローカル版を使用してください。
+
 ## Python／Compose foundation
 
 ```bash

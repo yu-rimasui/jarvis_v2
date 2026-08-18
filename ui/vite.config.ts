@@ -10,7 +10,7 @@ export default defineConfig({
   build: {
     outDir: fileURLToPath(new URL("../dist/ui", import.meta.url)),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: process.env["VITE_STATIC_PREVIEW"] !== "true",
     rollupOptions: {
       output: {
         entryFileNames: "assets/app.js",

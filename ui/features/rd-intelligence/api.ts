@@ -1,3 +1,4 @@
+import { isStaticPreview } from "../../shared/runtime.js";
 import type {
   DraftDetailView,
   DraftView,
@@ -44,6 +45,11 @@ export async function localApi<T>(
   path: `/api/${string}`,
   options?: RequestInit,
 ): Promise<T> {
+  if (isStaticPreview) {
+    throw new LocalApiError(
+      "GitHub PagesはUIプレビューです。データ操作はローカル版で行ってください。",
+    );
+  }
   const response = await fetch(path, options);
   let documentValue: unknown;
   try {

@@ -1,3 +1,5 @@
+import { isStaticPreview } from "../../shared/runtime.js";
+
 interface ApiEnvelope {
   readonly data?: {
     readonly items?: readonly unknown[];
@@ -25,6 +27,9 @@ async function fetchItems(path: string): Promise<readonly StatusRecord[]> {
 }
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary> {
+  if (isStaticPreview) {
+    throw new Error("Dashboard data is unavailable in the static preview");
+  }
   const [experiments, drafts] = await Promise.all([
     fetchItems("/api/experiments"),
     fetchItems("/api/x-drafts"),

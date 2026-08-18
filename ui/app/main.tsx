@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { routerBasename } from "../shared/runtime.js";
 import { App } from "./App.js";
 import "./styles.css";
 
@@ -12,7 +13,7 @@ if (!(rootElement instanceof HTMLElement)) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename(import.meta.env.BASE_URL)}>
       <App />
     </BrowserRouter>
   </StrictMode>,

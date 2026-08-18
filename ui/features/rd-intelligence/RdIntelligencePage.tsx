@@ -1,6 +1,7 @@
 import type { FormEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { isStaticPreview } from "../../shared/runtime.js";
 import {
   fetchDraft,
   fetchExperiment,
@@ -408,8 +409,13 @@ export function RdIntelligencePage() {
           <h1 id="rd-page-title">R&amp;D Intelligence</h1>
           <p>根拠から小さな実験とレビュー済み下書きを作る、ローカル専用の作業面です。</p>
         </div>
-        <button className="rd-primary-button" type="button" disabled={busy} onClick={() => void refresh()}>
-          {busy ? "更新中…" : "ローカルデータを更新"}
+        <button
+          className="rd-primary-button"
+          type="button"
+          disabled={busy || isStaticPreview}
+          onClick={() => void refresh()}
+        >
+          {isStaticPreview ? "プレビュー専用" : busy ? "更新中…" : "ローカルデータを更新"}
         </button>
       </header>
 
@@ -420,8 +426,14 @@ export function RdIntelligencePage() {
 
       {!connected ? (
         <aside className="rd-connection-panel">
-          <strong>ローカルAPIは未確認です</strong>
-          <p>`npm run api:local`で起動すると、保存済みデータを読み取れます。</p>
+          <strong>
+            {isStaticPreview ? "GitHub Pages UIプレビュー" : "ローカルAPIは未確認です"}
+          </strong>
+          <p>
+            {isStaticPreview
+              ? "公開版は表示確認専用です。データ操作と保存はローカル版で行ってください。"
+              : "`npm run api:local`で起動すると、保存済みデータを読み取れます。"}
+          </p>
         </aside>
       ) : null}
 
