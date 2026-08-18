@@ -20,13 +20,14 @@ Jarvisは実験の手順を提案・記録しますが、任意のコードや�
 flowchart LR
   UI[Jarvis dashboard / R&D view]
   API[Local API\n127.0.0.1 only]
-  COL[Collectors\nfixture / manual / X boundary]
+  COL[Collectors\nZenn / Qiita RSS / manual X]
   NORM[Normalization + dedupe + clustering]
   PIPE[Research pipeline]
-  LLM[LlmProvider\nFake local provider]
+  LLM[Ollama\nqwen3-vl:8b]
   RANK[Explainable ranking]
   EXP[Experiment + learning service]
-  DRAFT[ContentRenderer / X draft]
+  VAULT[Obsidian\nRD Intelligence area only]
+  DRAFT[Practice log / X draft]
   DIGEST[Daily digest]
   DB[(SQLite\nversioned migrations)]
   HIST[Processing history]
@@ -40,6 +41,7 @@ flowchart LR
   PIPE --> LLM
   PIPE --> RANK
   PIPE --> DB
+  PIPE --> VAULT
   EXP --> DB
   DRAFT --> DB
   DIGEST --> DB
@@ -123,11 +125,13 @@ Daily Digestは現在、指定したローカル日付の集計snapshotを生成
 
 ## 5. Local setup and environment
 
-環境変数は現在使用していません。`.env`、X token、LLM key、RSS credentialは不要です。
+PH1はローカルOllamaと個人Knowledge Vaultを使用します。X token、cloud LLM key、RSS credentialは不要です。
 
 ```text
-# Current MVP: no environment variables required.
-# All paths and the port are explicit CLI options.
+RD_OBSIDIAN_VAULT_PATH=~/dev/Knowledge
+RD_OBSIDIAN_AREA_PATH=03 - AREAS/RD Intelligence
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3-vl:8b
 ```
 
 既定のローカル起動:
@@ -138,6 +142,8 @@ npm run db:init
 npm run pipeline:fixture
 npm run api:local
 ```
+
+Ollamaの起動やモデル取得はJarvisから行いません。別途ユーザーが明示的に許可・実行した後、`GET /api/readiness`で到達性とモデル有無を確認します。
 
 ブラウザURLは `http://127.0.0.1:4317/` です。`api:local` はAPIと明示allowlistのUI assetを同じloopback originから配信します。Pythonの静的サーバーは既存の見た目を表示できますが、R&D APIは提供しないため、このMVPの操作には使いません。
 
@@ -160,6 +166,9 @@ npm run api:local -- --database data/demo.sqlite --migrations migrations --port 
 | Method | Path | Body / query | Result |
 | --- | --- | --- | --- |
 | GET | `/api/health` | なし | healthとbound host |
+| GET | `/api/readiness` | なし | VaultとOllama/modelの準備状態 |
+| POST | `/api/collections/rss` | `{}` | Zenn/Qiita各feedの部分成功・失敗 |
+| POST | `/api/inbox/x-import` | URL、本文、投稿者、任意日時 | 手動X取込と分析 |
 | GET | `/api/inbox?limit=1..200` | なし | `{items}` |
 | POST | `/api/inbox/import` | `{items: RawSourceItem[]}` | processing run |
 | GET | `/api/insights?limit=1..200` | なし | ranked insight list |
@@ -182,11 +191,13 @@ curl -sS -X POST http://127.0.0.1:4317/api/inbox/import \
 | GET | `/api/experiments` | なし |
 | GET | `/api/experiments/:id` | なし。experiment、runs、events、learning |
 | POST | `/api/insights/:analysisId/experiments` | `title`, `hypothesis`, `expectedValue`, `smallestFirstStep`, `requiredTools[]`, `estimatedEffort`, `risk`, `successCriteria`, `verificationMethod` |
+| POST | `/api/insights/:analysisId/practice-note` | `{}`。実験開始とObsidian雛形作成 |
 | POST | `/api/experiments/:id/approve` | `{}` |
 | POST | `/api/experiments/:id/start` | `{}` |
 | POST | `/api/experiments/:id/reject` | `{reason}` |
 | POST | `/api/experiments/:id/block` | `{reason}` |
 | POST | `/api/experiments/:id/complete` | required: `result`, `verificationEvidence`, `learned`, `nextDecision`, `hypothesisSupport`, `reusableKnowledge`; optional: `nextExperiment`, `publishableFirstHandExperience` |
+| POST | `/api/experiments/:id/import-log` | `{}`。Obsidian実践ログを検証して完了 |
 
 `hypothesisSupport`は `supported` / `partially_supported` / `not_supported` / `inconclusive` です。実験のコマンドやコードはAPIから実行されません。
 
@@ -194,13 +205,14 @@ curl -sS -X POST http://127.0.0.1:4317/api/inbox/import \
 
 | Method | Path | Body |
 | --- | --- | --- |
-| POST | `/api/insights/:analysisId/x-drafts` | `{}` または `{experimentId}` |
+| POST | `/api/insights/:analysisId/x-drafts` | 完了済みの`{experimentId}`が必須 |
 | GET | `/api/x-drafts` | なし |
 | GET | `/api/x-drafts/:id` | なし。draftとreview events |
 | PATCH | `/api/x-drafts/:id` | `hook`, `body`, `keyTakeaway`, `sourceLinks[]` |
 | POST | `/api/x-drafts/:id/review` | `{}` |
 | POST | `/api/x-drafts/:id/approve` | `{}` |
 | POST | `/api/x-drafts/:id/reject` | `{reason}` |
+| POST | `/api/x-drafts/:id/reload` | `{}`。Obsidian校閲結果を再読込 |
 | GET | `/api/processing-history?limit=1..200` | なし |
 | POST | `/api/digests` | `{}` または `{localDate:"YYYY-MM-DD"}` |
 
@@ -224,8 +236,9 @@ UIはReact／Vite／React Routerで、外部assetやブラウザ永続化を使�
 
 ## 8. Security, privacy, and cost
 
-- 外部ネットワーク、X/RSS/cloud LLM、credentials、`process.env`は現在使用しません。
-- fake providerはローカル決定的出力です。したがってAPI利用料は発生しません。
+- 外部通信は、ユーザーが「最新情報を取得」を押したときのZenn/Qiita RSSだけです。記事本文は取得しません。
+- 分析と下書きはloopback上のOllamaだけに送り、cloud LLMへ送信しません。
+- Vaultは`03 - AREAS/RD Intelligence`配下だけをrealpath検証付きで読み書きし、日記・健康等の領域を読みません。
 - APIはloopbackのみ、CORSなし、Host/Origin検証あり。静的配信はallowlist assetだけです。
 - ログにはsource本文、token、Authorization header、個人コンテンツを記録しない方針です。処理失敗はredacted error code/kindで保持します。
 - `fixtures/source-items.json`は合成データです。実データを手動importする場合、SQLite、ログ、バックアップの保管期間と削除方針を利用者が決めてください。
@@ -244,8 +257,8 @@ UIはReact／Vite／React Routerで、外部assetやブラウザ永続化を使�
 ### TODO
 
 - X API List Timelineを、承認済み資格情報と利用規約・rate limit確認後に実装する。
-- Zenn / Qiita RSS collectorを、取得頻度・robots/利用規約・失敗時の再試行とともに実装する。
-- 実LLM providerを、schema validation、cost ceiling、prompt/model version、個人データ送信の同意とともに追加する。
+- RSS sourceの追加は、利用規約と取得頻度を確認してから行う。
+- Obsidian Sync、E2EE remote、日記・健康記録はPH2以降とする。
 - topic clusteringを、決定的ルールから必要最小限の意味クラスタリングへ評価する。
 - Instagram向けrendererを追加する（API投稿は実装しない）。
 - データの削除/exportとretention UIを設計する。
